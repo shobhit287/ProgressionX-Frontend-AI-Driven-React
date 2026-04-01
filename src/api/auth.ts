@@ -37,7 +37,7 @@ export function useLogin() {
       const { data: user } = await apiClient.get<User>('/users/me', {
         headers: { Authorization: `Bearer ${data.accessToken}` },
       });
-      setAuth(data.accessToken, user);
+      setAuth(data.accessToken, data.refreshToken, user);
     },
   });
 }

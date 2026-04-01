@@ -22,10 +22,10 @@ export default function Login() {
     try {
       const tokenRes = await login.mutateAsync({ email, password });
       // Temporarily set token so the currentUser call is authenticated
-      useAuthStore.getState().setAuth(tokenRes.accessToken, {} as never);
+      useAuthStore.getState().setTokens(tokenRes.accessToken, tokenRes.refreshToken);
       const user = await currentUser.refetch();
       if (user.data) {
-        setAuth(tokenRes.accessToken, user.data);
+        setAuth(tokenRes.accessToken, tokenRes.refreshToken, user.data);
       }
       navigate('/', { replace: true });
     } catch (err: unknown) {
