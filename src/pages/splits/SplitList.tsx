@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import Skeleton from '@/components/ui/Skeleton';
 import { capitalize } from '@/utils/format';
 
 type DayEnum = WorkoutSplit['day'];
@@ -71,50 +71,50 @@ export default function SplitList() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#0f172a] px-4 pt-6 pb-24">
-      <div className="max-w-lg mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-[#f1f5f9]">Weekly Splits</h1>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text">Weekly Splits</h1>
+      </div>
 
-        <div className="space-y-3">
-          {DAYS.map((day) => {
-            const split = splitByDay.get(day);
-            return (
-              <Card
-                key={day}
-                className="p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
-                onClick={() => handleDayClick(day)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#0f172a] flex items-center justify-center">
-                    <span className="text-[#6366f1] font-bold text-sm">{DAY_SHORT[day]}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#f1f5f9] font-medium">
-                      {split ? split.name : 'Rest Day'}
-                    </p>
-                    <p className="text-[#94a3b8] text-xs capitalize">{capitalize(day)}</p>
-                  </div>
+      <div className="space-y-3">
+        {isLoading
+          ? Array.from({ length: 7 }, (_, i) => (
+              <div key={i} className="rounded-xl bg-surface border border-border p-4 flex items-center gap-4">
+                <Skeleton className="w-12 h-12 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-1/5" />
                 </div>
-                {split ? (
-                  <ChevronRight className="w-5 h-5 text-[#94a3b8]" />
-                ) : (
-                  <Plus className="w-5 h-5 text-[#94a3b8]" />
-                )}
-              </Card>
-            );
-          })}
-        </div>
+              </div>
+            ))
+          : DAYS.map((day) => {
+              const split = splitByDay.get(day);
+              return (
+                <Card
+                  key={day}
+                  className="p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
+                  onClick={() => handleDayClick(day)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-background flex items-center justify-center">
+                      <span className="text-primary font-bold text-sm">{DAY_SHORT[day]}</span>
+                    </div>
+                    <div>
+                      <p className="text-text font-medium">
+                        {split ? split.name : 'Rest Day'}
+                      </p>
+                      <p className="text-text-muted text-xs capitalize">{capitalize(day)}</p>
+                    </div>
+                  </div>
+                  {split ? (
+                    <ChevronRight className="w-5 h-5 text-text-muted" />
+                  ) : (
+                    <Plus className="w-5 h-5 text-text-muted" />
+                  )}
+                </Card>
+              );
+            })}
       </div>
 
       {/* Create split modal */}

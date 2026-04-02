@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, keepPreviousData } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import AuthGuard from '@/components/AuthGuard';
 import { lazy, Suspense } from 'react';
@@ -21,6 +21,8 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 30 * 1000,
       retry: 1,
+      placeholderData: keepPreviousData,
+      refetchOnWindowFocus: false,
     },
   },
 });

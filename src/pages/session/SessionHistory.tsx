@@ -32,90 +32,91 @@ export default function SessionHistory() {
   const totalPages = data?.totalPages ?? 1;
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#f1f5f9] pb-24">
-      {/* Header */}
-      <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold mb-4">Workout History</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold">Workout History</h1>
 
-        {/* Filter */}
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPage(1);
-          }}
-          className="w-full h-12 rounded-xl bg-[#1e293b] border border-[#334155] px-4 text-[#f1f5f9] text-base focus:border-[#6366f1] outline-none appearance-none"
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Filter */}
+      <select
+        value={statusFilter}
+        onChange={(e) => {
+          setStatusFilter(e.target.value);
+          setPage(1);
+        }}
+        className="w-full h-12 rounded-xl bg-surface border border-border px-4 text-text text-base focus:border-primary outline-none appearance-none"
+      >
+        {STATUS_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
 
       {/* Sessions list */}
-      <div className="max-w-lg mx-auto px-4 space-y-3">
-        {isLoading && (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-[#6366f1] border-t-transparent rounded-full" />
-          </div>
-        )}
+      <div className="space-y-3">
+        {isLoading &&
+          Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="rounded-2xl bg-surface border border-border p-4 flex items-center gap-3">
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-2/3 rounded bg-surface-light/50 animate-pulse" />
+                <div className="h-3 w-1/3 rounded bg-surface-light/50 animate-pulse" />
+              </div>
+            </div>
+          ))}
 
         {!isLoading && sessions.length === 0 && (
-          <div className="text-center py-16 text-[#94a3b8]">
+          <div className="text-center py-16 text-text-muted">
             <p className="text-lg">No sessions found</p>
             <p className="text-sm mt-1">Start a workout from the dashboard</p>
           </div>
         )}
 
-        {sessions.map((session) => (
+        {!isLoading && sessions.map((session) => (
           <button
             key={session.id}
             onClick={() => navigate(`/session/${session.id}`)}
-            className="w-full bg-[#1e293b] rounded-2xl p-4 flex items-center justify-between hover:bg-[#334155]/60 active:bg-[#334155] transition-colors text-left"
+            className="w-full bg-surface rounded-2xl p-4 flex items-center justify-between active:bg-surface-light transition-colors text-left touch-manipulation"
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <Calendar className="w-4 h-4 text-[#6366f1] shrink-0" />
+                <Calendar className="w-4 h-4 text-primary shrink-0" />
                 <span className="text-base font-semibold truncate">
                   {formatDate(session.startedAt)}
                 </span>
                 <span
-                  className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[session.status] ?? 'bg-[#334155] text-[#94a3b8]'}`}
+                  className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[session.status] ?? 'bg-surface-light text-text-muted'}`}
                 >
                   {session.status.replace('_', ' ')}
                 </span>
               </div>
               {session.durationSeconds != null && (
-                <div className="flex items-center gap-1.5 text-[#94a3b8] text-sm">
+                <div className="flex items-center gap-1.5 text-text-muted text-sm">
                   <Clock className="w-3.5 h-3.5" />
                   <span>{formatDuration(session.durationSeconds)}</span>
                 </div>
               )}
             </div>
-            <ChevronRight className="w-5 h-5 text-[#94a3b8] shrink-0 ml-2" />
+            <ChevronRight className="w-5 h-5 text-text-muted shrink-0 ml-2" />
           </button>
         ))}
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-6 px-4">
+        <div className="flex items-center justify-center gap-4 mt-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="h-11 px-5 rounded-xl bg-[#1e293b] text-[#f1f5f9] font-semibold disabled:opacity-40"
+            className="h-11 px-5 rounded-xl bg-surface text-text font-semibold disabled:opacity-40 touch-manipulation"
           >
             Prev
           </button>
-          <span className="text-sm text-[#94a3b8]">
+          <span className="text-sm text-text-muted">
             {page} / {totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="h-11 px-5 rounded-xl bg-[#1e293b] text-[#f1f5f9] font-semibold disabled:opacity-40"
+            className="h-11 px-5 rounded-xl bg-surface text-text font-semibold disabled:opacity-40 touch-manipulation"
           >
             Next
           </button>

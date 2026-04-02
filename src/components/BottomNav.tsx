@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Dumbbell, BarChart3, Weight, Bot } from 'lucide-react';
 
@@ -9,9 +10,9 @@ const navItems = [
   { to: '/ai', icon: Bot, label: 'AI' },
 ];
 
-export default function BottomNav() {
+const BottomNav = memo(function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto flex max-w-lg items-center justify-around">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
@@ -19,16 +20,18 @@ export default function BottomNav() {
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-colors ${
-                isActive ? 'text-primary' : 'text-text-muted hover:text-text'
+              `flex flex-col items-center gap-0.5 px-4 py-3 text-xs transition-colors touch-manipulation min-w-[64px] ${
+                isActive ? 'text-primary' : 'text-text-muted'
               }`
             }
           >
-            <Icon size={20} />
-            <span>{label}</span>
+            <Icon size={22} />
+            <span className="text-[11px]">{label}</span>
           </NavLink>
         ))}
       </div>
     </nav>
   );
-}
+});
+
+export default BottomNav;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useExerciseAnalytics } from '@/api/analytics';
 import { formatWeight } from '@/utils/format';
 import {
@@ -11,6 +11,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { Trophy, Calendar } from 'lucide-react';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 function formatShortDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -32,12 +33,15 @@ export default function ExerciseAnalytics({ exerciseName }: Props) {
 
   const dataPoints = data ?? [];
 
-  // Derive PR from data points (highest estimated 1RM)
-  const pr = dataPoints.length > 0
-    ? dataPoints.reduce((best, d) =>
-        d.estimated1Rm > best.estimated1Rm ? d : best,
-      )
-    : null;
+  const pr = useMemo(
+    () =>
+      dataPoints.length > 0
+        ? dataPoints.reduce((best, d) =>
+            d.estimated1Rm > best.estimated1Rm ? d : best,
+          )
+        : null,
+    [dataPoints],
+  );
 
   return (
     <div className="space-y-6">
@@ -96,13 +100,14 @@ export default function ExerciseAnalytics({ exerciseName }: Props) {
       )}
 
       {isLoading && (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin h-8 w-8 border-4 border-[#6366f1] border-t-transparent rounded-full" />
+        <div className="space-y-6">
+          <ChartSkeleton />
+          <ChartSkeleton />
         </div>
       )}
 
       {!isLoading && dataPoints.length === 0 && (
-        <p className="text-center text-[#94a3b8] py-8">
+        <p className="text-center text-text-muted py-8">
           No data found for "{exerciseName}"
         </p>
       )}

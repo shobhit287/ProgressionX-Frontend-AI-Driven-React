@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useWeightLogs, useWeightAnalytics, useCreateWeightLog, useDeleteWeightLog } from '@/api/weightLogs';
 import { useAnalyzeWeight } from '@/api/ai';
 import { formatDate, formatWeight } from '@/utils/format';
@@ -13,6 +13,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { Scale, TrendingDown, TrendingUp, Trash2, Brain, Minus } from 'lucide-react';
+import Skeleton, { ChartSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton';
 
 function formatShortDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -37,34 +38,35 @@ export default function WeightPage() {
 
   const logItems = logs?.items ?? [];
 
-  // Merge weight logs + weekly averages for chart
-  const chartData = logItems
-    .slice()
-    .reverse()
-    .map((l) => ({
-      date: l.loggedAt,
-      weight: l.weightKg,
-    }));
+  // Memoize expensive chart merge to avoid recomputing on every render
+  const mergedChart = useMemo(() => {
+    const chartData = logItems
+      .slice()
+      .reverse()
+      .map((l) => ({
+        date: l.loggedAt,
+        weight: l.weightKg,
+      }));
 
-  const weeklyData =
-    analytics?.weeklyAverages.map((w) => ({
-      date: w.weekStart,
-      avgWeight: w.averageWeight,
-    })) ?? [];
+    const weeklyData =
+      analytics?.weeklyAverages.map((w) => ({
+        date: w.weekStart,
+        avgWeight: w.averageWeight,
+      })) ?? [];
 
-  // Combine for overlay
-  const mergedChart = chartData.map((point) => {
-    const weekMatch = weeklyData.find((w) => {
-      const ws = new Date(w.date).getTime();
-      const we = ws + 7 * 86400 * 1000;
-      const pd = new Date(point.date).getTime();
-      return pd >= ws && pd < we;
+    return chartData.map((point) => {
+      const weekMatch = weeklyData.find((w) => {
+        const ws = new Date(w.date).getTime();
+        const we = ws + 7 * 86400 * 1000;
+        const pd = new Date(point.date).getTime();
+        return pd >= ws && pd < we;
+      });
+      return {
+        ...point,
+        weeklyAvg: weekMatch?.avgWeight,
+      };
     });
-    return {
-      ...point,
-      weeklyAvg: weekMatch?.avgWeight,
-    };
-  });
+  }, [logItems, analytics?.weeklyAverages]);
 
   const rateOfChange = analytics?.rateOfChange ?? 0;
 
@@ -104,9 +106,8 @@ export default function WeightPage() {
     rateOfChange < -0.01 ? 'text-[#22c55e]' : rateOfChange > 0.01 ? 'text-[#f59e0b]' : 'text-[#94a3b8]';
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#f1f5f9] pb-24">
-      <div className="max-w-lg mx-auto px-4 pt-6 space-y-6">
-        <h1 className="text-2xl font-bold">Body Weight</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Body Weight</h1>
 
         {/* Log form */}
         <div className="bg-[#1e293b] rounded-2xl p-4 space-y-3">
@@ -187,7 +188,12 @@ export default function WeightPage() {
         )}
 
         {/* Weight trend chart */}
-        {mergedChart.length > 1 && (
+        {logsLoading ? (
+          <div>
+            <Skeleton className="h-4 w-24 mb-2" />
+            <ChartSkeleton />
+          </div>
+        ) : mergedChart.length > 1 && (
           <div>
             <h3 className="text-sm font-semibold text-[#94a3b8] mb-2">Weight Trend</h3>
             <div className="bg-[#1e293b] rounded-xl p-3">
@@ -288,42 +294,44 @@ export default function WeightPage() {
 
         {/* Recent logs */}
         <div>
-          <h3 className="text-sm font-semibold text-[#94a3b8] mb-2">Recent Logs</h3>
-          {logsLoading && (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin h-6 w-6 border-3 border-[#6366f1] border-t-transparent rounded-full" />
+          <h3 className="text-sm font-semibold text-text-muted mb-2">Recent Logs</h3>
+          {logsLoading ? (
+            <div className="space-y-2">
+              <ListItemSkeleton />
+              <ListItemSkeleton />
+              <ListItemSkeleton />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {logItems.map((log) => (
+                <div
+                  key={log.id}
+                  className="bg-surface rounded-xl p-3 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <Scale className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <p className="text-base font-semibold">
+                        {formatWeight(log.weightKg)}
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        {formatDate(log.loggedAt)}
+                        {log.waistCm != null && ` · ${log.waistCm} cm`}
+                        {log.bodyFatPct != null && ` · ${log.bodyFatPct}%`}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => deleteLog.mutate(log.id)}
+                    className="p-2 text-text-muted hover:text-danger transition-colors touch-manipulation"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
-          <div className="space-y-2">
-            {logItems.map((log) => (
-              <div
-                key={log.id}
-                className="bg-[#1e293b] rounded-xl p-3 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <Scale className="w-4 h-4 text-[#6366f1] shrink-0" />
-                  <div>
-                    <p className="text-base font-semibold">
-                      {formatWeight(log.weightKg)}
-                    </p>
-                    <p className="text-xs text-[#94a3b8]">
-                      {formatDate(log.loggedAt)}
-                      {log.waistCm != null && ` · ${log.waistCm} cm`}
-                      {log.bodyFatPct != null && ` · ${log.bodyFatPct}%`}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => deleteLog.mutate(log.id)}
-                  className="p-2 text-[#94a3b8] hover:text-[#ef4444] transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
-      </div>
     </div>
   );
 }

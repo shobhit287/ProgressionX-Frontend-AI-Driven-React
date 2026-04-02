@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-export default function Card({ children, className = '', ...props }: CardProps) {
+const Card = memo(function Card({ children, className = '', ...props }: CardProps) {
   return (
     <div
       className={`rounded-xl bg-surface border border-border p-4 ${className}`}
@@ -13,4 +14,6 @@ export default function Card({ children, className = '', ...props }: CardProps) 
       {children}
     </div>
   );
-}
+});
+
+export default Card;

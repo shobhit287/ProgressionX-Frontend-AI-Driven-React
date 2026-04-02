@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useLogin, useCurrentUser } from '@/api/auth';
-import { useAuthStore } from '@/store/auth';
+import { useLogin } from '@/api/auth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
 export default function Login() {
   const navigate = useNavigate();
   const login = useLogin();
-  const currentUser = useCurrentUser();
-  const setAuth = useAuthStore((s) => s.setAuth);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,13 +17,7 @@ export default function Login() {
     setError('');
 
     try {
-      const tokenRes = await login.mutateAsync({ email, password });
-      // Temporarily set token so the currentUser call is authenticated
-      useAuthStore.getState().setTokens(tokenRes.accessToken, tokenRes.refreshToken);
-      const user = await currentUser.refetch();
-      if (user.data) {
-        setAuth(tokenRes.accessToken, tokenRes.refreshToken, user.data);
-      }
+      await login.mutateAsync({ email, password });
       navigate('/', { replace: true });
     } catch (err: unknown) {
       const msg =

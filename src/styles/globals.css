@@ -15,3 +15,45 @@
   --color-danger: #ef4444;
   --color-border: #334155;
 }
+
+/* Mobile performance optimizations */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  overscroll-behavior-y: contain;
+}
+
+/* Prevent layout shift from scrollbar */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Smooth but performant scrolling */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Input zoom prevention on iOS (16px minimum) */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Hardware-accelerated animations */
+.animate-pulse,
+.animate-spin {
+  will-change: opacity, transform;
+}

@@ -206,19 +206,26 @@ export default function ActiveSession() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0f172a]">
-        <div className="animate-spin h-10 w-10 border-4 border-[#6366f1] border-t-transparent rounded-full" />
+      <div className="space-y-4 pt-4">
+        <div className="h-14 rounded-lg bg-surface-light/50 animate-pulse" />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-surface rounded-2xl p-4 space-y-3">
+            <div className="h-5 w-1/3 rounded bg-surface-light/50 animate-pulse" />
+            <div className="h-4 w-full rounded bg-surface-light/50 animate-pulse" />
+            <div className="h-4 w-2/3 rounded bg-surface-light/50 animate-pulse" />
+          </div>
+        ))}
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f172a] text-[#f1f5f9] gap-4 p-6">
-        <p className="text-lg">Session not found</p>
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <p className="text-lg text-text">Session not found</p>
         <button
           onClick={() => navigate('/')}
-          className="px-6 py-3 bg-[#6366f1] rounded-xl text-base font-semibold"
+          className="px-6 py-3 bg-primary rounded-xl text-base font-semibold text-white"
         >
           Go Home
         </button>
@@ -229,9 +236,9 @@ export default function ActiveSession() {
   const isActive = session.status === 'in_progress';
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#f1f5f9] pb-32">
+    <div className="pb-32">
       {/* ---- Timer header ---- */}
-      <div className="sticky top-0 z-30 bg-[#0f172a]/95 backdrop-blur border-b border-[#334155] px-4 py-3">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div className="flex items-center gap-2">
             <Timer className="w-5 h-5 text-[#6366f1]" />

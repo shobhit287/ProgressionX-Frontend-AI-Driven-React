@@ -53,7 +53,9 @@ export function useCreateWeightLog() {
       return data;
     },
     onSuccess: () => {
+      // Invalidate both logs and analytics so charts update immediately
       void queryClient.invalidateQueries({ queryKey: ['weightLogs'] });
+      void queryClient.invalidateQueries({ queryKey: ['analytics', 'dashboard'] });
     },
   });
 }

@@ -13,7 +13,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import Skeleton, { ListItemSkeleton } from '@/components/ui/Skeleton';
 import { capitalize } from '@/utils/format';
 
 type ExerciseType = SplitExercise['exerciseType'];
@@ -114,16 +114,27 @@ export default function SplitDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-4 w-1/4" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          <ListItemSkeleton />
+          <ListItemSkeleton />
+          <ListItemSkeleton />
+        </div>
       </div>
     );
   }
 
   if (!split) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <p className="text-[#94a3b8]">Split not found</p>
+      <div className="flex items-center justify-center py-20">
+        <p className="text-text-muted">Split not found</p>
       </div>
     );
   }
@@ -133,8 +144,7 @@ export default function SplitDetail() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0f172a] px-4 pt-6 pb-24">
-      <div className="max-w-lg mx-auto">
+    <div>
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <button
@@ -213,7 +223,6 @@ export default function SplitDetail() {
           <Plus className="w-5 h-5 mr-2" />
           Add Exercise
         </Button>
-      </div>
 
       {/* Add/Edit exercise modal */}
       <Modal

@@ -90,9 +90,8 @@ export default function AIPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#f1f5f9] pb-24">
-      <div className="max-w-lg mx-auto px-4 pt-6 space-y-4">
-        <h1 className="text-2xl font-bold">AI Coach</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold">AI Coach</h1>
         <p className="text-sm text-[#94a3b8]">
           Get AI-powered analysis and suggestions for your training
         </p>
@@ -239,7 +238,6 @@ export default function AIPage() {
 
         {/* Result */}
         {result && !isPending && <AnalysisResult data={result} />}
-      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSessionAnalytics } from '@/api/analytics';
 import { formatDuration } from '@/utils/format';
 import {
@@ -11,6 +11,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { Activity, TrendingUp, Clock } from 'lucide-react';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 function formatShortDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -28,18 +29,18 @@ export default function SessionAnalytics() {
 
   const dataPoints = points ?? [];
 
-  // Summary calculations
-  const totalSessions = dataPoints.length;
-  const avgVolume =
-    totalSessions > 0
-      ? Math.round(dataPoints.reduce((s, d) => s + d.totalVolume, 0) / totalSessions)
-      : 0;
-  const avgDuration =
-    totalSessions > 0
-      ? Math.round(
-          dataPoints.reduce((s, d) => s + (d.durationSeconds ?? 0), 0) / totalSessions,
-        )
-      : 0;
+  const { totalSessions, avgVolume, avgDuration } = useMemo(() => {
+    const total = dataPoints.length;
+    return {
+      totalSessions: total,
+      avgVolume: total > 0
+        ? Math.round(dataPoints.reduce((s, d) => s + d.totalVolume, 0) / total)
+        : 0,
+      avgDuration: total > 0
+        ? Math.round(dataPoints.reduce((s, d) => s + (d.durationSeconds ?? 0), 0) / total)
+        : 0,
+    };
+  }, [dataPoints]);
 
   return (
     <div className="space-y-6">
@@ -85,13 +86,14 @@ export default function SessionAnalytics() {
       </div>
 
       {isLoading && (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin h-8 w-8 border-4 border-[#6366f1] border-t-transparent rounded-full" />
+        <div className="space-y-6">
+          <ChartSkeleton />
+          <ChartSkeleton />
         </div>
       )}
 
       {!isLoading && dataPoints.length === 0 && (
-        <p className="text-center text-[#94a3b8] py-8">No data for selected range</p>
+        <p className="text-center text-text-muted py-8">No data for selected range</p>
       )}
 
       {!isLoading && dataPoints.length > 0 && (

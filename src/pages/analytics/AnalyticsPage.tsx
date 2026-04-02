@@ -16,12 +16,11 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#f1f5f9] pb-24">
-      <div className="max-w-lg mx-auto px-4 pt-6">
-        <h1 className="text-2xl font-bold mb-4">Analytics</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold">Analytics</h1>
 
         {/* Tabs */}
-        <div className="flex border-b border-[#334155] mb-6">
+        <div className="flex border-b border-border mb-6">
           {(['sessions', 'exercises'] as const).map((t) => (
             <button
               key={t}
@@ -76,7 +75,6 @@ export default function AnalyticsPage() {
             )}
           </div>
         )}
-      </div>
     </div>
   );
 }
