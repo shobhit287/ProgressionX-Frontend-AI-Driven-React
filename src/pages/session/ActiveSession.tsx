@@ -288,7 +288,7 @@ export default function ActiveSession() {
               {!isCollapsed && (
                 <div className="px-4 pb-4">
                   {/* Sets table header */}
-                  <div className="grid grid-cols-[40px_1fr_1fr_70px_32px] gap-1 text-[10px] uppercase tracking-wider text-[#94a3b8] mb-1 px-1">
+                  <div className="grid grid-cols-[32px_1fr_1fr_48px_28px] gap-1 text-[10px] uppercase tracking-wider text-[#94a3b8] mb-1 px-1 min-w-0">
                     <span>Set</span>
                     <span>Weight</span>
                     <span>Reps</span>
@@ -305,7 +305,7 @@ export default function ActiveSession() {
                       return (
                         <div
                           key={set.id}
-                          className="grid grid-cols-[40px_1fr_1fr_70px_32px] gap-1 items-center mb-1"
+                          className="grid grid-cols-[32px_1fr_1fr_48px_28px] gap-1 items-center mb-1"
                         >
                           <span className="text-sm text-[#94a3b8] text-center">
                             {set.setNumber}
@@ -321,7 +321,7 @@ export default function ActiveSession() {
                                 [set.id]: { ...p[set.id], weightKg: e.target.value },
                               }))
                             }
-                            className="h-11 rounded-lg bg-[#0f172a] border border-[#334155] text-center text-[#f1f5f9] text-base font-semibold focus:border-[#6366f1] outline-none"
+                            className="h-11 min-w-0 rounded-lg bg-[#0f172a] border border-[#334155] text-center text-[#f1f5f9] text-sm font-semibold focus:border-[#6366f1] outline-none"
                           />
                           <input
                             type="number"
@@ -333,7 +333,7 @@ export default function ActiveSession() {
                                 [set.id]: { ...p[set.id], reps: e.target.value },
                               }))
                             }
-                            className="h-11 rounded-lg bg-[#0f172a] border border-[#334155] text-center text-[#f1f5f9] text-base font-semibold focus:border-[#6366f1] outline-none"
+                            className="h-11 min-w-0 rounded-lg bg-[#0f172a] border border-[#334155] text-center text-[#f1f5f9] text-sm font-semibold focus:border-[#6366f1] outline-none"
                           />
                           <select
                             value={editInp.rir}
@@ -343,7 +343,7 @@ export default function ActiveSession() {
                                 [set.id]: { ...p[set.id], rir: e.target.value },
                               }))
                             }
-                            className="h-11 rounded-lg bg-[#0f172a] border border-[#334155] text-center text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none"
+                            className="h-11 min-w-0 rounded-lg bg-[#0f172a] border border-[#334155] text-center text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none"
                           >
                             <option value="">-</option>
                             {[0, 1, 2, 3, 4, 5].map((v) => (
@@ -372,7 +372,7 @@ export default function ActiveSession() {
                     return (
                       <div key={set.id} className="mb-1">
                         <button
-                          className="grid grid-cols-[40px_1fr_1fr_70px_32px] gap-1 items-center w-full text-left rounded-lg hover:bg-[#334155]/40 px-1 py-1 transition-colors"
+                          className="grid grid-cols-[32px_1fr_1fr_48px_28px] gap-1 items-center w-full text-left rounded-lg hover:bg-[#334155]/40 px-1 py-1 transition-colors"
                           onClick={() => isActive && startEdit(set)}
                         >
                           <span className="text-sm text-[#94a3b8] text-center">
@@ -397,7 +397,7 @@ export default function ActiveSession() {
                           </span>
                         </button>
                         {prev && (
-                          <div className="grid grid-cols-[40px_1fr_1fr_70px_32px] gap-1 px-1 -mt-0.5 mb-0.5">
+                          <div className="grid grid-cols-[32px_1fr_1fr_48px_28px] gap-1 px-1 -mt-0.5 mb-0.5">
                             <span />
                             <span className="text-[10px] text-[#475569] text-center">prev {prev.weight_kg}</span>
                             <span className="text-[10px] text-[#475569] text-center">prev {prev.reps}</span>
@@ -420,7 +420,7 @@ export default function ActiveSession() {
                         const prev = getPrevSet(exercise.exerciseName, nextSetNum);
                         if (!prev) return null;
                         return (
-                          <div className="grid grid-cols-[40px_1fr_1fr_70px_32px] gap-1 items-center mt-2 px-1">
+                          <div className="grid grid-cols-[32px_1fr_1fr_48px_28px] gap-1 items-center mt-2 px-1">
                             <span className="text-[10px] text-[#6366f1] text-center font-semibold">PREV</span>
                             <span className="text-xs text-[#94a3b8] text-center">{prev.weight_kg} kg</span>
                             <span className="text-xs text-[#94a3b8] text-center">{prev.reps} reps</span>
@@ -433,7 +433,7 @@ export default function ActiveSession() {
                       })()}
                       <div
                         ref={nextSetRef}
-                        className="grid grid-cols-[40px_1fr_1fr_70px_32px] gap-1 items-center mt-1"
+                        className="grid grid-cols-[32px_1fr_1fr_48px_28px] gap-1 items-center mt-1"
                       >
                         <span className="text-sm text-[#6366f1] text-center font-bold">
                           {exercise.sets.length + 1}
@@ -447,7 +447,7 @@ export default function ActiveSession() {
                           onChange={(e) =>
                             setInput(exercise.id, { weightKg: e.target.value })
                           }
-                          className="h-12 rounded-lg bg-[#0f172a] border-2 border-[#334155] text-center text-[#f1f5f9] text-lg font-bold placeholder:text-[#475569] focus:border-[#6366f1] outline-none"
+                          className="h-12 min-w-0 rounded-lg bg-[#0f172a] border-2 border-[#334155] text-center text-[#f1f5f9] text-base font-bold placeholder:text-[#475569] focus:border-[#6366f1] outline-none"
                         />
                         <input
                           type="number"
@@ -457,14 +457,14 @@ export default function ActiveSession() {
                           onChange={(e) =>
                             setInput(exercise.id, { reps: e.target.value })
                           }
-                          className="h-12 rounded-lg bg-[#0f172a] border-2 border-[#334155] text-center text-[#f1f5f9] text-lg font-bold placeholder:text-[#475569] focus:border-[#6366f1] outline-none"
+                          className="h-12 min-w-0 rounded-lg bg-[#0f172a] border-2 border-[#334155] text-center text-[#f1f5f9] text-base font-bold placeholder:text-[#475569] focus:border-[#6366f1] outline-none"
                         />
                         <select
                           value={inp.rir}
                           onChange={(e) =>
                             setInput(exercise.id, { rir: e.target.value })
                           }
-                          className="h-12 rounded-lg bg-[#0f172a] border-2 border-[#334155] text-center text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none"
+                          className="h-12 min-w-0 rounded-lg bg-[#0f172a] border-2 border-[#334155] text-center text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none"
                         >
                           <option value="">RIR</option>
                           {[0, 1, 2, 3, 4, 5].map((v) => (
