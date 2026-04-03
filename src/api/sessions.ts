@@ -72,9 +72,9 @@ export function useCompleteSession() {
 
   return useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
-      const { data } = await apiClient.post<WorkoutSession>(
+      const { data } = await apiClient.patch<WorkoutSession>(
         `/sessions/${id}/complete`,
-        { notes },
+        notes ? { notes } : undefined,
       );
       return data;
     },
@@ -91,7 +91,7 @@ export function useAbandonSession() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data } = await apiClient.post<WorkoutSession>(`/sessions/${id}/abandon`);
+      const { data } = await apiClient.patch<WorkoutSession>(`/sessions/${id}/abandon`);
       return data;
     },
     onSuccess: (_data, variables) => {
