@@ -5,6 +5,7 @@ import { useCurrentUser } from '@/api/auth';
 import { useTodaySplit } from '@/api/splits';
 import { useActiveSession, useStartSession } from '@/api/sessions';
 import { useDashboardSummary } from '@/api/analytics';
+import { useAutoCompleteStaleSession } from '@/hooks/useAutoCompleteStaleSession';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Skeleton, { CardSkeleton, StatCardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton';
@@ -17,6 +18,9 @@ export default function Dashboard() {
   const { data: activeSession } = useActiveSession();
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
   const startSession = useStartSession();
+
+  // Auto-complete any session left open from a previous day
+  useAutoCompleteStaleSession();
 
   const today = useMemo(() => formatDate(new Date().toISOString()), []);
 

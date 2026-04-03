@@ -45,7 +45,7 @@ export function useDashboardSummary() {
   return useQuery({
     queryKey: analyticsKeys.dashboard,
     queryFn: async () => {
-      const { data } = await apiClient.get<DashboardSummary>('/analytics/dashboard');
+      const { data } = await apiClient.get<DashboardSummary>('/analytics/summary');
       return data;
     },
   });
