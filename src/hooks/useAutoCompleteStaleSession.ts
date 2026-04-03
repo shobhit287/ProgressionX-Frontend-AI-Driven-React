@@ -28,11 +28,7 @@ export function useAutoCompleteStaleSession() {
     completingRef.current = true;
     completeSession.mutate(
       { id: activeSession.id, notes: 'Auto-completed (session from previous day)' },
-      {
-        onSettled: () => {
-          completingRef.current = false;
-        },
-      },
     );
-  }, [activeSession, completeSession]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSession]);
 }
