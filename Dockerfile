@@ -3,9 +3,13 @@ FROM node:20 AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --include=optional
 
 COPY . .
+
+# Fix lightningcss native binding
+RUN npm rebuild lightningcss
+
 RUN npm run build
 
 FROM nginx:alpine
