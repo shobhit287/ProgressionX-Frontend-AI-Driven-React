@@ -49,7 +49,7 @@ export default defineConfig({
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60, // 1 hour
+                maxAgeSeconds: 60 * 60,
               },
             },
           },
@@ -57,14 +57,15 @@ export default defineConfig({
       },
     }),
   ],
+
+  // ✅ FIX HERE
+  css: {
+    transformer: 'postcss',
+  },
+
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-  },
-  server: {
-    proxy: {
-      '/api': 'http://localhost:8000',
-    },
-  },
+  }
 })
