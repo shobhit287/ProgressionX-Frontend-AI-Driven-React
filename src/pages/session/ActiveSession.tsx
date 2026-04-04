@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSession, useCompleteSession, useAbandonSession } from '@/api/sessions';
 import { useAddSet, useUpdateSet, usePreviousSets } from '@/api/sets';
+import SessionCoach from '@/components/SessionCoach';
 import type { PreviousSetData } from '@/api/sets';
 import type { SessionExercise, ExerciseSet } from '@/types';
 import { formatDuration, formatWeight } from '@/utils/format';
@@ -620,6 +621,9 @@ export default function ActiveSession() {
           </div>
         </div>
       )}
+
+      {/* ---- AI Coach ---- */}
+      {isActive && <SessionCoach sessionId={id!} />}
     </div>
   );
 }

@@ -165,3 +165,7 @@ export interface AIAnalysisResponse {
   analysis: string;
   suggestions: string[];
 }
+
+export interface SessionCoachResponse {
+  answer: string;
+}

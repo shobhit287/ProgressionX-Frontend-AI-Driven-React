@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import apiClient from '@/api/client';
-import type { AIAnalysisResponse } from '@/types';
+import type { AIAnalysisResponse, SessionCoachResponse } from '@/types';
 
 export function useAnalyzeSessions() {
   return useMutation({
@@ -31,6 +31,18 @@ export function useAnalyzeWeight() {
     mutationFn: async (payload?: { startDate?: string; endDate?: string }) => {
       const { data } = await apiClient.post<AIAnalysisResponse>(
         '/ai/analyze/weight',
+        payload,
+      );
+      return data;
+    },
+  });
+}
+
+export function useSessionCoach() {
+  return useMutation({
+    mutationFn: async (payload: { sessionId: string; question: string }) => {
+      const { data } = await apiClient.post<SessionCoachResponse>(
+        '/ai/session-coach',
         payload,
       );
       return data;
