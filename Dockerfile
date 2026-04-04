@@ -3,19 +3,19 @@ FROM node:20 AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps --include=optional
+RUN npm ci --omit=dev
 
 COPY . .
-
-# Fix lightningcss native binding
-RUN npm rebuild lightningcss
-
+RUN npm install --no-save lightningcss-linux-x64-gnu
 RUN npm run build
 
+# Final image (VERY SMALL)
 FROM nginx:alpine
 
+# remove default nginx html
+RUN rm -rf /usr/share/nginx/html/*
+
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
