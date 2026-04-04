@@ -3,10 +3,9 @@ FROM node:20 AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --legacy-peer-deps
 
 COPY . .
-RUN npm install --no-save lightningcss-linux-x64-gnu
 RUN npm run build
 
 # Final image (VERY SMALL)
