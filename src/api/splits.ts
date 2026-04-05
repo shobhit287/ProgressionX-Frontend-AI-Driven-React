@@ -49,6 +49,7 @@ export function useCreateSplit() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: splitKeys.all });
+      void queryClient.invalidateQueries({ queryKey: splitKeys.today });
     },
   });
 }
@@ -63,6 +64,7 @@ export function useUpdateSplit() {
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: splitKeys.all });
+      void queryClient.invalidateQueries({ queryKey: splitKeys.today });
       void queryClient.invalidateQueries({ queryKey: splitKeys.detail(variables.id) });
     },
   });
@@ -77,6 +79,7 @@ export function useDeleteSplit() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: splitKeys.all });
+      void queryClient.invalidateQueries({ queryKey: splitKeys.today });
     },
   });
 }
