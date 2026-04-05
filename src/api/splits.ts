@@ -58,7 +58,7 @@ export function useUpdateSplit() {
 
   return useMutation({
     mutationFn: async ({ id, ...payload }: Partial<WorkoutSplit> & { id: string }) => {
-      const { data } = await apiClient.put<WorkoutSplit>(`/splits/${id}`, payload);
+      const { data } = await apiClient.patch<WorkoutSplit>(`/splits/${id}`, payload);
       return data;
     },
     onSuccess: (_data, variables) => {

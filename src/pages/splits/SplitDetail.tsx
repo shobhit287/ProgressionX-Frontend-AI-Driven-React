@@ -1,20 +1,25 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, ArrowLeft, GripVertical } from 'lucide-react';
-import { useSplit } from '@/api/splits';
+import { useSplit, useUpdateSplit } from '@/api/splits';
 import {
   useSplitExercises,
   useCreateExercise,
   useUpdateExercise,
   useDeleteExercise,
 } from '@/api/exercises';
-import type { SplitExercise } from '@/types';
+import type { SplitExercise, WorkoutSplit } from '@/types';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Skeleton, { ListItemSkeleton } from '@/components/ui/Skeleton';
 import { capitalize } from '@/utils/format';
+
+type DayEnum = WorkoutSplit['day'];
+const DAYS: DayEnum[] = [
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+];
 
 type ExerciseType = SplitExercise['exerciseType'];
 const EXERCISE_TYPES: ExerciseType[] = ['standard', 'superset', 'dropset', 'giant_set'];
@@ -45,14 +50,44 @@ export default function SplitDetail() {
   const createExercise = useCreateExercise();
   const updateExercise = useUpdateExercise();
   const deleteExercise = useDeleteExercise();
+  const updateSplit = useUpdateSplit();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ExerciseForm>(emptyForm);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  const [splitModalOpen, setSplitModalOpen] = useState(false);
+  const [splitName, setSplitName] = useState('');
+  const [splitDay, setSplitDay] = useState<DayEnum>('monday');
+  const [splitDescription, setSplitDescription] = useState('');
+
   function updateField(field: keyof ExerciseForm, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function openSplitEditModal() {
+    if (!split) return;
+    setSplitName(split.name);
+    setSplitDay(split.day);
+    setSplitDescription(split.description || '');
+    setSplitModalOpen(true);
+  }
+
+  async function handleSplitUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!splitName.trim() || !id) return;
+    try {
+      await updateSplit.mutateAsync({
+        id,
+        name: splitName.trim(),
+        day: splitDay,
+        description: splitDescription.trim() || undefined,
+      });
+      setSplitModalOpen(false);
+    } catch {
+      // handled by query
+    }
   }
 
   function openAddModal() {
@@ -157,6 +192,13 @@ export default function SplitDetail() {
             <h1 className="text-2xl font-bold text-[#f1f5f9]">{split.name}</h1>
             <p className="text-[#94a3b8] text-sm capitalize">{split.day}</p>
           </div>
+          <button
+            onClick={openSplitEditModal}
+            className="p-2 rounded-lg hover:bg-[#1e293b] transition-colors"
+            title="Edit split"
+          >
+            <Pencil className="w-5 h-5 text-[#94a3b8]" />
+          </button>
         </div>
 
         {split.description && (
@@ -223,6 +265,60 @@ export default function SplitDetail() {
           <Plus className="w-5 h-5 mr-2" />
           Add Exercise
         </Button>
+
+      {/* Edit split modal */}
+      <Modal
+        open={splitModalOpen}
+        onClose={() => setSplitModalOpen(false)}
+        title="Edit Split"
+      >
+        <form onSubmit={handleSplitUpdate} className="space-y-4">
+          <Input
+            label="Split Name"
+            placeholder="e.g. Push Day"
+            value={splitName}
+            onChange={(e) => setSplitName(e.target.value)}
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-[#f1f5f9] mb-1">Day</label>
+            <select
+              value={splitDay}
+              onChange={(e) => setSplitDay(e.target.value as DayEnum)}
+              className="w-full rounded-lg bg-[#0f172a] border border-[#334155] text-[#f1f5f9] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
+            >
+              {DAYS.map((d) => (
+                <option key={d} value={d}>
+                  {capitalize(d)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#f1f5f9] mb-1">
+              Description (optional)
+            </label>
+            <textarea
+              value={splitDescription}
+              onChange={(e) => setSplitDescription(e.target.value)}
+              placeholder="Chest, shoulders, triceps..."
+              rows={2}
+              className="w-full rounded-lg bg-[#0f172a] border border-[#334155] text-[#f1f5f9] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1] resize-none"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            loading={updateSplit.isPending}
+            className="w-full"
+          >
+            Update Split
+          </Button>
+        </form>
+      </Modal>
 
       {/* Add/Edit exercise modal */}
       <Modal
