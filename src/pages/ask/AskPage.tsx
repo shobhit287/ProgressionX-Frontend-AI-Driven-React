@@ -39,11 +39,15 @@ export default function AskPage() {
     if (!question || chat.isPending) return;
 
     const userMsg: Message = { id: ++idRef.current, role: 'user', content: question };
-    setMessages((prev) => [...prev, userMsg]);
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setInput('');
 
+    // Send conversation history (excluding the current question) so the LLM has context
+    const history = messages.map((m) => ({ role: m.role, content: m.content }));
+
     chat.mutate(
-      { question },
+      { question, history },
       {
         onSuccess: (data) => {
           const aiMsg: Message = { id: ++idRef.current, role: 'assistant', content: data.answer };

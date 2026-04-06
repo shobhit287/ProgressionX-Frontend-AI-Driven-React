@@ -40,7 +40,10 @@ export function useAnalyzeWeight() {
 
 export function useFitnessChat() {
   return useMutation({
-    mutationFn: async (payload: { question: string }) => {
+    mutationFn: async (payload: {
+      question: string;
+      history: { role: string; content: string }[];
+    }) => {
       const { data } = await apiClient.post<FitnessChatResponse>(
         '/ai/chat',
         payload,
