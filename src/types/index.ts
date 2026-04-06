@@ -169,3 +169,7 @@ export interface AIAnalysisResponse {
 export interface SessionCoachResponse {
   answer: string;
 }
+
+export interface FitnessChatResponse {
+  answer: string;
+}

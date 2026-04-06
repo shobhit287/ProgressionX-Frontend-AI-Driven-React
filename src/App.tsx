@@ -15,6 +15,7 @@ const SessionHistoryPage = lazy(() => import('@/pages/session/SessionHistory'));
 const AnalyticsPage = lazy(() => import('@/pages/analytics/AnalyticsPage'));
 const WeightPage = lazy(() => import('@/pages/weight/WeightPage'));
 const AIPage = lazy(() => import('@/pages/ai/AIPage'));
+const AskPage = lazy(() => import('@/pages/ask/AskPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,6 +55,7 @@ export default function App() {
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/weight" element={<WeightPage />} />
                 <Route path="/ai" element={<AIPage />} />
+                <Route path="/ask" element={<AskPage />} />
               </Route>
             </Route>
           </Routes>
