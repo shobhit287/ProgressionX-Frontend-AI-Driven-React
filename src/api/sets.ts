@@ -78,8 +78,8 @@ export function useUpdateSet() {
       isDropset?: boolean;
       description?: string;
     }) => {
-      const { data } = await apiClient.put<ExerciseSet>(
-        `/sessions/${sessionId}/exercises/${exerciseId}/sets/${setId}`,
+      const { data } = await apiClient.patch<ExerciseSet>(
+        `/sessions/${sessionId}/sets/${setId}`,
         payload,
       );
       return data;

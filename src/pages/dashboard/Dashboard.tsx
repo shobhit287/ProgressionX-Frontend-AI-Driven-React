@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, ArrowRight, Flame, Calendar, Dumbbell, Trophy } from 'lucide-react';
+import { Play, ArrowRight, Flame, Calendar, Dumbbell, Trophy, CheckCircle } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
 import { useTodaySplit } from '@/api/splits';
-import { useActiveSession, useStartSession } from '@/api/sessions';
+import { useActiveSession, useStartSession, useSessions } from '@/api/sessions';
 import { useDashboardSummary } from '@/api/analytics';
 import { useAutoCompleteStaleSession } from '@/hooks/useAutoCompleteStaleSession';
 import Button from '@/components/ui/Button';
@@ -18,6 +18,13 @@ export default function Dashboard() {
   const { data: activeSession } = useActiveSession();
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
   const startSession = useStartSession();
+
+  // Check if today's split already has a completed session
+  const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const { data: todaySessions } = useSessions(
+    todaySplit ? { splitId: todaySplit.id, fromDate: todayISO, toDate: todayISO, status: 'completed', pageSize: 1 } : undefined,
+  );
+  const todayCompleted = (todaySessions?.items?.length ?? 0) > 0;
 
   // Auto-complete any session left open from a previous day
   useAutoCompleteStaleSession();
@@ -74,7 +81,25 @@ export default function Dashboard() {
                 <h2 className="text-xl font-bold text-text mt-1">{todaySplit.name}</h2>
                 <p className="text-text-muted text-sm capitalize mt-0.5">{todaySplit.day}</p>
               </div>
-              {!activeSession && (
+              {activeSession ? (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => navigate(`/session/${activeSession.id}`)}
+                >
+                  <Play className="w-5 h-5 mr-2" />
+                  Resume Session
+                </Button>
+              ) : todayCompleted ? (
+                <div className="flex items-center gap-3 py-2">
+                  <CheckCircle className="w-6 h-6 text-success" />
+                  <div>
+                    <p className="text-success font-semibold">Workout Complete</p>
+                    <p className="text-text-muted text-xs">Great job today!</p>
+                  </div>
+                </div>
+              ) : (
                 <Button
                   variant="primary"
                   size="lg"

@@ -23,7 +23,7 @@ function formatShortDate(dateStr: string) {
 export default function WeightPage() {
   // Form state
   const [weightKg, setWeightKg] = useState('');
-  const [waistCm, setWaistCm] = useState('');
+  const [waistInches, setWaistInches] = useState('');
   const [bodyFatPct, setBodyFatPct] = useState('');
   const [description, setDescription] = useState('');
 
@@ -76,14 +76,14 @@ export default function WeightPage() {
     createLog.mutate(
       {
         weightKg: w,
-        waistCm: waistCm ? parseFloat(waistCm) : undefined,
+        waistCm: waistInches ? parseFloat(waistInches) * 2.54 : undefined,
         bodyFatPct: bodyFatPct ? parseFloat(bodyFatPct) : undefined,
         description: description || undefined,
       },
       {
         onSuccess: () => {
           setWeightKg('');
-          setWaistCm('');
+          setWaistInches('');
           setBodyFatPct('');
           setDescription('');
         },
@@ -125,14 +125,14 @@ export default function WeightPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-[#94a3b8] mb-1 block">Waist (cm)</label>
+              <label className="text-xs text-[#94a3b8] mb-1 block">Waist (inches)</label>
               <input
                 type="number"
                 inputMode="decimal"
-                step="0.5"
-                placeholder="80"
-                value={waistCm}
-                onChange={(e) => setWaistCm(e.target.value)}
+                step="0.25"
+                placeholder="32"
+                value={waistInches}
+                onChange={(e) => setWaistInches(e.target.value)}
                 className="w-full h-12 rounded-lg bg-[#0f172a] border border-[#334155] text-center text-base text-[#f1f5f9] placeholder:text-[#475569] focus:border-[#6366f1] outline-none"
               />
             </div>
@@ -316,7 +316,7 @@ export default function WeightPage() {
                       </p>
                       <p className="text-xs text-text-muted">
                         {formatDate(log.loggedAt)}
-                        {log.waistCm != null && ` · ${log.waistCm} cm`}
+                        {log.waistCm != null && ` · ${(log.waistCm / 2.54).toFixed(1)} in`}
                         {log.bodyFatPct != null && ` · ${log.bodyFatPct}%`}
                       </p>
                     </div>

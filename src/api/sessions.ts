@@ -12,6 +12,9 @@ interface SessionFilters {
   page?: number;
   pageSize?: number;
   status?: string;
+  splitId?: string;
+  fromDate?: string;
+  toDate?: string;
 }
 
 export function useActiveSession() {
@@ -25,16 +28,17 @@ export function useActiveSession() {
   });
 }
 
-export function useSessions(filters?: SessionFilters) {
+export function useSessions(filters?: SessionFilters | null) {
   return useQuery({
     queryKey: [...sessionKeys.all, filters],
     queryFn: async () => {
       const { data } = await apiClient.get<PaginatedResponse<WorkoutSession>>(
         '/sessions',
-        { params: filters },
+        { params: filters ?? undefined },
       );
       return data;
     },
+    enabled: filters !== undefined && filters !== null,
   });
 }
 
