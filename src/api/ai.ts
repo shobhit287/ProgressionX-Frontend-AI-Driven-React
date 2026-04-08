@@ -6,7 +6,7 @@ export function useAnalyzeSessions() {
   return useMutation({
     mutationFn: async (payload?: { startDate?: string; endDate?: string }) => {
       const { data } = await apiClient.post<AIAnalysisResponse>(
-        '/ai/analyze/sessions',
+        '/ai/analyze-sessions',
         payload,
       );
       return data;
@@ -18,7 +18,7 @@ export function useAnalyzeExercise() {
   return useMutation({
     mutationFn: async (payload: { exerciseName: string; startDate?: string; endDate?: string }) => {
       const { data } = await apiClient.post<AIAnalysisResponse>(
-        '/ai/analyze/exercise',
+        '/ai/analyze-exercise',
         payload,
       );
       return data;
@@ -30,7 +30,7 @@ export function useAnalyzeWeight() {
   return useMutation({
     mutationFn: async (payload?: { startDate?: string; endDate?: string }) => {
       const { data } = await apiClient.post<AIAnalysisResponse>(
-        '/ai/analyze/weight',
+        '/ai/analyze-weight',
         payload,
       );
       return data;

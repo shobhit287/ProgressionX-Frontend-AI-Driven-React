@@ -5,7 +5,19 @@ import type { SplitExercise } from '@/types';
 
 export const exerciseKeys = {
   bySplit: (splitId: string) => ['exercises', splitId] as const,
+  names: ['exercises', 'names'] as const,
 };
+
+export function useExerciseNames() {
+  return useQuery({
+    queryKey: exerciseKeys.names,
+    queryFn: async () => {
+      const { data } = await apiClient.get<string[]>('/exercises/names');
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 export function useSplitExercises(splitId: string) {
   return useQuery({

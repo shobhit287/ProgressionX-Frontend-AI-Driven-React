@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useAnalyzeSessions, useAnalyzeExercise, useAnalyzeWeight } from '@/api/ai';
+import { useExerciseNames } from '@/api/exercises';
 import type { AIAnalysisResponse } from '@/types';
 import AnalysisResult from '@/components/AnalysisResult';
 import { Brain, Dumbbell, Scale, Activity } from 'lucide-react';
@@ -25,6 +26,13 @@ export default function AIPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [result, setResult] = useState<AIAnalysisResponse | null>(null);
 
+  // Exercise autocomplete
+  const { data: allExerciseNames } = useExerciseNames();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const analyzeSessions = useAnalyzeSessions();
   const analyzeExercise = useAnalyzeExercise();
   const analyzeWeight = useAnalyzeWeight();
@@ -32,13 +40,44 @@ export default function AIPage() {
   const isPending =
     analyzeSessions.isPending || analyzeExercise.isPending || analyzeWeight.isPending;
 
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
   const updateForm = (patch: Partial<FormState>) =>
     setForm((p) => ({ ...p, ...patch }));
+
+  // Debounced exercise name search
+  const handleExerciseInput = useCallback((value: string) => {
+    updateForm({ exerciseName: value });
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedQuery(value.trim().toLowerCase());
+      setShowDropdown(true);
+    }, 300);
+  }, []);
+
+  const filteredExercises = useMemo(() => {
+    if (!allExerciseNames || !debouncedQuery) return [];
+    return allExerciseNames.filter((name) =>
+      name.toLowerCase().includes(debouncedQuery),
+    );
+  }, [allExerciseNames, debouncedQuery]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleOpen = (type: AnalysisType) => {
     setActiveType(type);
     setForm(emptyForm);
     setResult(null);
+    setShowDropdown(false);
   };
 
   const handleSubmit = () => {
@@ -142,7 +181,7 @@ export default function AIPage() {
         {activeType && (
           <div className="bg-[#1e293b] rounded-2xl p-4 space-y-3">
             {activeType === 'exercise' && (
-              <div>
+              <div className="relative" ref={dropdownRef}>
                 <label className="text-xs text-[#94a3b8] mb-1 block">
                   Exercise Name *
                 </label>
@@ -150,9 +189,32 @@ export default function AIPage() {
                   type="text"
                   placeholder="e.g. Bench Press"
                   value={form.exerciseName}
-                  onChange={(e) => updateForm({ exerciseName: e.target.value })}
+                  onChange={(e) => handleExerciseInput(e.target.value)}
+                  onFocus={() => form.exerciseName.trim() && setShowDropdown(true)}
                   className="w-full h-12 rounded-lg bg-[#0f172a] border border-[#334155] px-4 text-[#f1f5f9] text-base placeholder:text-[#475569] focus:border-[#6366f1] outline-none"
                 />
+                {showDropdown && form.exerciseName.trim() && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1e293b] border border-[#334155] rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                    {filteredExercises.length > 0 ? (
+                      filteredExercises.map((name) => (
+                        <button
+                          key={name}
+                          onClick={() => {
+                            updateForm({ exerciseName: name });
+                            setShowDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-[#f1f5f9] hover:bg-[#334155] transition-colors"
+                        >
+                          {name}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-[#94a3b8]">
+                        No matching exercise found in your splits
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -162,6 +224,7 @@ export default function AIPage() {
                 <input
                   type="date"
                   value={form.dateFrom}
+                  max={form.dateTo || today}
                   onChange={(e) => updateForm({ dateFrom: e.target.value })}
                   className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none"
                 />
@@ -171,6 +234,8 @@ export default function AIPage() {
                 <input
                   type="date"
                   value={form.dateTo}
+                  min={form.dateFrom || undefined}
+                  max={today}
                   onChange={(e) => updateForm({ dateTo: e.target.value })}
                   className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none"
                 />
