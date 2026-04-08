@@ -31,7 +31,7 @@ export default function AIPage() {
   const { data: allExerciseNames } = useExerciseNames();
   const [showDropdown, setShowDropdown] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const analyzeSessions = useAnalyzeSessions();
