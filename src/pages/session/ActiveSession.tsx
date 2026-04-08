@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSession, useCompleteSession, useAbandonSession } from '@/api/sessions';
-import { useAddSet, useUpdateSet, usePreviousSets } from '@/api/sets';
+import { useAddSet, useUpdateSet, useDeleteSet, usePreviousSets } from '@/api/sets';
 import SessionCoach from '@/components/SessionCoach';
+import AiSessionPlan from '@/components/AiSessionPlan';
 import type { PreviousSetData } from '@/api/sets';
 import type { SessionExercise, ExerciseSet } from '@/types';
 import { formatDuration, formatWeight } from '@/utils/format';
-import { Timer, ChevronDown, ChevronUp, MessageSquare, Flame, ArrowDownCircle, Check, X } from 'lucide-react';
+import { Timer, ChevronDown, ChevronUp, MessageSquare, Flame, ArrowDownCircle, Check, X, Trash2 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
 /*  Per-set input state                                                */
@@ -59,6 +60,7 @@ export default function ActiveSession() {
 
   const addSet = useAddSet();
   const updateSet = useUpdateSet();
+  const deleteSet = useDeleteSet();
   const completeSession = useCompleteSession();
   const abandonSession = useAbandonSession();
 
@@ -100,6 +102,8 @@ export default function ActiveSession() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   // Notes toggle per exercise
   const [showNotes, setShowNotes] = useState<Record<string, boolean>>({});
+  // Delete confirm for sets
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   // Complete confirm
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
@@ -206,13 +210,24 @@ export default function ActiveSession() {
       delete next[setId];
       return next;
     });
+    setDeleteConfirm(null);
   };
 
-  const handleComplete = () => {
-    completeSession.mutate(
-      { id: id! },
-      { onSuccess: () => navigate('/') },
+  const handleDeleteSet = (setId: string) => {
+    deleteSet.mutate(
+      { sessionId: id!, setId },
+      {
+        onSuccess: () => {
+          setDeleteConfirm(null);
+          cancelEdit(setId);
+        },
+      },
     );
+  };
+
+  const handleComplete = async () => {
+    await completeSession.mutateAsync({ id: id! });
+    navigate('/');
   };
 
   const handleAbandon = () => {
@@ -274,6 +289,9 @@ export default function ActiveSession() {
           )}
         </div>
       </div>
+
+      {/* ---- AI Recommended Plan ---- */}
+      {isActive && <AiSessionPlan sessionId={id!} />}
 
       {/* ---- Exercise cards ---- */}
       <div className="max-w-lg mx-auto px-3 pt-4 space-y-4">
@@ -377,18 +395,44 @@ export default function ActiveSession() {
                             </select>
                           </div>
                           <div className="flex justify-end gap-2 mt-1 pr-1">
-                            <button
-                              onClick={() => handleSaveEdit(exercise, set)}
-                              className="flex items-center gap-1 text-success text-sm font-medium px-3 py-1 rounded-lg active:bg-success/10"
-                            >
-                              <Check className="w-4 h-4" /> Save
-                            </button>
-                            <button
-                              onClick={() => cancelEdit(set.id)}
-                              className="flex items-center gap-1 text-danger text-sm font-medium px-3 py-1 rounded-lg active:bg-danger/10"
-                            >
-                              <X className="w-4 h-4" /> Cancel
-                            </button>
+                            {deleteConfirm === set.id ? (
+                              <>
+                                <button
+                                  onClick={() => handleDeleteSet(set.id)}
+                                  disabled={deleteSet.isPending}
+                                  className="flex items-center gap-1 text-danger text-sm font-medium px-3 py-1 rounded-lg active:bg-danger/10 disabled:opacity-50"
+                                >
+                                  {deleteSet.isPending ? 'Deleting...' : 'Confirm Delete'}
+                                </button>
+                                <button
+                                  onClick={() => setDeleteConfirm(null)}
+                                  className="flex items-center gap-1 text-text-muted text-sm font-medium px-3 py-1 rounded-lg active:bg-surface-light/40"
+                                >
+                                  Back
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleSaveEdit(exercise, set)}
+                                  className="flex items-center gap-1 text-success text-sm font-medium px-3 py-1 rounded-lg active:bg-success/10"
+                                >
+                                  <Check className="w-4 h-4" /> Save
+                                </button>
+                                <button
+                                  onClick={() => setDeleteConfirm(set.id)}
+                                  className="flex items-center gap-1 text-danger text-sm font-medium px-3 py-1 rounded-lg active:bg-danger/10"
+                                >
+                                  <Trash2 className="w-4 h-4" /> Delete
+                                </button>
+                                <button
+                                  onClick={() => cancelEdit(set.id)}
+                                  className="flex items-center gap-1 text-text-muted text-sm font-medium px-3 py-1 rounded-lg active:bg-surface-light/40"
+                                >
+                                  <X className="w-4 h-4" /> Cancel
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       );

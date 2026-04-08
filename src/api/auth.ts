@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/store/auth';
 import type { TokenResponse, User } from '@/types';
@@ -22,6 +22,7 @@ interface SignupPayload {
   height: number;
   goal: 'bulking' | 'cutting' | 'maintenance';
   gender: 'male' | 'female' | 'other';
+  trainingType?: string;
   mobileNumber?: string;
 }
 
@@ -64,5 +65,39 @@ export function useCurrentUser() {
     },
     enabled: !!token,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  const setUser = useAuthStore((s) => s.setUser);
+
+  return useMutation({
+    mutationFn: async (payload: {
+      firstName?: string;
+      lastName?: string;
+      weight?: number;
+      goal?: 'bulking' | 'cutting' | 'maintenance';
+      trainingType?: string;
+    }) => {
+      const { data } = await apiClient.patch<User>('/users', payload);
+      return data;
+    },
+    onSuccess: (data) => {
+      setUser(data);
+      void queryClient.invalidateQueries({ queryKey: authKeys.currentUser });
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (payload: { oldPassword: string; newPassword: string }) => {
+      const { data } = await apiClient.post<{ message: string }>(
+        '/users/change-password',
+        payload,
+      );
+      return data;
+    },
   });
 }

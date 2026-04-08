@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, UserCircle } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { useAuthStore } from '@/store/auth';
 
@@ -22,13 +22,20 @@ export default function Layout() {
             <h1 className="text-lg font-bold tracking-tight">
               <span className="text-primary">Progression</span>X
             </h1>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-border hover:text-text transition-colors"
-            >
-              <LogOut size={16} />
-              <span>Logout</span>
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-border hover:text-text transition-colors"
+              >
+                <UserCircle size={18} />
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-border hover:text-text transition-colors"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
           </div>
         </header>
       )}

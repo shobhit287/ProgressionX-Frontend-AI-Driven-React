@@ -97,15 +97,13 @@ export function useDeleteSet() {
   return useMutation({
     mutationFn: async ({
       sessionId,
-      exerciseId,
       setId,
     }: {
       sessionId: string;
-      exerciseId: string;
       setId: string;
     }) => {
       await apiClient.delete(
-        `/sessions/${sessionId}/exercises/${exerciseId}/sets/${setId}`,
+        `/sessions/${sessionId}/sets/${setId}`,
       );
     },
     onSuccess: (_data, variables) => {

@@ -82,10 +82,12 @@ export function useCompleteSession() {
       );
       return data;
     },
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.id) });
+    onSuccess: async (_data, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: sessionKeys.all }),
+        queryClient.invalidateQueries({ queryKey: sessionKeys.active }),
+        queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.id) }),
+      ]);
     },
   });
 }

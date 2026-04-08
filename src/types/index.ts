@@ -1,4 +1,6 @@
 // User
+export type TrainingType = 'hypertrophy' | 'strength' | 'powerbuilding' | 'endurance' | 'general_fitness';
+
 export interface User {
   id: string;
   firstName: string;
@@ -8,6 +10,7 @@ export interface User {
   height: number;
   goal: 'bulking' | 'cutting' | 'maintenance';
   gender: 'male' | 'female' | 'other';
+  trainingType: TrainingType;
   mobileNumber?: string;
   email: string;
   isActive: boolean;
@@ -172,4 +175,22 @@ export interface SessionCoachResponse {
 
 export interface FitnessChatResponse {
   answer: string;
+}
+
+// AI Session Plan
+export interface PlannedSet {
+  setNumber: number;
+  weightKg: number;
+  reps: number;
+  isWarmup: boolean;
+}
+
+export interface PlannedExercise {
+  exerciseName: string;
+  sets: PlannedSet[];
+}
+
+export interface SessionPlanResponse {
+  exercises: PlannedExercise[];
+  note: string;
 }

@@ -7,6 +7,13 @@ import Input from '@/components/ui/Input';
 
 const GOALS = ['bulking', 'cutting', 'maintenance'] as const;
 const GENDERS = ['male', 'female', 'other'] as const;
+const TRAINING_TYPES = [
+  { value: 'hypertrophy', label: 'Hypertrophy (Muscle Growth)' },
+  { value: 'strength', label: 'Strength Focused' },
+  { value: 'powerbuilding', label: 'Powerbuilding' },
+  { value: 'endurance', label: 'Endurance' },
+  { value: 'general_fitness', label: 'General Fitness' },
+] as const;
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -25,6 +32,7 @@ export default function Signup() {
     height: '',
     goal: 'bulking' as (typeof GOALS)[number],
     gender: 'male' as (typeof GENDERS)[number],
+    trainingType: 'hypertrophy' as string,
     mobileNumber: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -64,6 +72,7 @@ export default function Signup() {
         height: Number(form.height),
         goal: form.goal,
         gender: form.gender,
+        trainingType: form.trainingType,
         mobileNumber: form.mobileNumber.trim() || undefined,
       });
 
@@ -179,6 +188,22 @@ export default function Signup() {
               {GOALS.map((g) => (
                 <option key={g} value={g}>
                   {g.charAt(0).toUpperCase() + g.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Training Type dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-[#f1f5f9] mb-1">Training Type</label>
+            <select
+              value={form.trainingType}
+              onChange={(e) => updateField('trainingType', e.target.value)}
+              className="w-full rounded-lg bg-[#0f172a] border border-[#334155] text-[#f1f5f9] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
+            >
+              {TRAINING_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
                 </option>
               ))}
             </select>

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/api/client';
+import { sessionKeys } from '@/api/sessions';
 import type { SplitExercise } from '@/types';
 
 export const exerciseKeys = {
@@ -64,6 +65,9 @@ export function useDeleteExercise() {
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: exerciseKeys.bySplit(variables.splitId) });
+      // Also refresh active session so deleted exercise disappears from it
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
     },
   });
 }

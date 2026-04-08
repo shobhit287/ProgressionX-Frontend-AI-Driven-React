@@ -1,6 +1,6 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import apiClient from '@/api/client';
-import type { AIAnalysisResponse, SessionCoachResponse, FitnessChatResponse } from '@/types';
+import type { AIAnalysisResponse, SessionCoachResponse, FitnessChatResponse, SessionPlanResponse } from '@/types';
 
 export function useAnalyzeSessions() {
   return useMutation({
@@ -62,5 +62,21 @@ export function useSessionCoach() {
       );
       return data;
     },
+  });
+}
+
+export function useSessionPlan(sessionId: string) {
+  return useQuery({
+    queryKey: ['session-plan', sessionId],
+    queryFn: async () => {
+      const { data } = await apiClient.post<SessionPlanResponse>(
+        '/ai/session-plan',
+        { sessionId },
+      );
+      return data;
+    },
+    enabled: !!sessionId,
+    staleTime: 10 * 60 * 1000, // cache for 10 minutes — plan doesn't change mid-session
+    retry: 1,
   });
 }
