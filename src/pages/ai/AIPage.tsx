@@ -25,6 +25,7 @@ export default function AIPage() {
   const [activeType, setActiveType] = useState<AnalysisType>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [result, setResult] = useState<AIAnalysisResponse | null>(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Exercise autocomplete
   const { data: allExerciseNames } = useExerciseNames();
@@ -77,27 +78,33 @@ export default function AIPage() {
     setActiveType(type);
     setForm(emptyForm);
     setResult(null);
+    setErrorMsg('');
     setShowDropdown(false);
   };
 
   const handleSubmit = () => {
+    setErrorMsg('');
+    setResult(null);
     const params = {
       startDate: form.dateFrom || undefined,
       endDate: form.dateTo || undefined,
     };
 
     const onSuccess = (data: AIAnalysisResponse) => setResult(data);
+    const onError = (err: any) => {
+      setErrorMsg(err.userMessage || 'Something went wrong. Please try again.');
+    };
 
     if (activeType === 'sessions') {
-      analyzeSessions.mutate(params, { onSuccess });
+      analyzeSessions.mutate(params, { onSuccess, onError });
     } else if (activeType === 'exercise') {
       if (!form.exerciseName.trim()) return;
       analyzeExercise.mutate(
         { exerciseName: form.exerciseName.trim(), ...params },
-        { onSuccess },
+        { onSuccess, onError },
       );
     } else if (activeType === 'weight') {
-      analyzeWeight.mutate(params, { onSuccess });
+      analyzeWeight.mutate(params, { onSuccess, onError });
     }
   };
 
@@ -271,6 +278,13 @@ export default function AIPage() {
           <div className="flex items-center justify-center gap-3 py-6 text-[#94a3b8]">
             <div className="animate-spin h-6 w-6 border-2 border-[#6366f1] border-t-transparent rounded-full" />
             <span className="text-base">AI is analyzing your data...</span>
+          </div>
+        )}
+
+        {/* Error */}
+        {errorMsg && !isPending && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
+            {errorMsg}
           </div>
         )}
 

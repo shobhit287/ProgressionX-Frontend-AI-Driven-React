@@ -30,9 +30,22 @@ function processQueue(error: unknown, token: string | null) {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    const status = error.response?.status;
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Rate limit or AI busy — enrich with user-friendly message
+    if (status === 429) {
+      const msg = error.response?.data?.error?.message || 'Too many requests. Please wait a moment and try again.';
+      error.userMessage = msg;
+      return Promise.reject(error);
+    }
+    if (status === 503) {
+      const msg = error.response?.data?.error?.message || 'AI is temporarily busy. Please try again in a minute.';
+      error.userMessage = msg;
+      return Promise.reject(error);
+    }
+
+    if (status === 401 && !originalRequest._retry) {
       const refreshToken = useAuthStore.getState().refreshToken;
 
       if (!refreshToken) {

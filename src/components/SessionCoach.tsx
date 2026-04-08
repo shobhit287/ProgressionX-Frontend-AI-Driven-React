@@ -23,6 +23,9 @@ export default function SessionCoach({ sessionId }: SessionCoachProps) {
           setAnswer(data.answer);
           setQuestion('');
         },
+        onError: (err: any) => {
+          setAnswer(err.userMessage || 'Failed to get response. Try again.');
+        },
       },
     );
   };
@@ -69,7 +72,7 @@ export default function SessionCoach({ sessionId }: SessionCoachProps) {
           </div>
         )}
 
-        {coach.isError && (
+        {coach.isError && !answer && (
           <div className="bg-danger/10 rounded-xl p-3 text-sm text-danger">
             Failed to get response. Try again.
           </div>
