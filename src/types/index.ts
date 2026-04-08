@@ -11,6 +11,7 @@ export interface User {
   goal: 'bulking' | 'cutting' | 'maintenance';
   gender: 'male' | 'female' | 'other';
   trainingType: TrainingType;
+  activityLevel?: string;
   mobileNumber?: string;
   email: string;
   isActive: boolean;

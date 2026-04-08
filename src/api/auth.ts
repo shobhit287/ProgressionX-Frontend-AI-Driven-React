@@ -79,6 +79,7 @@ export function useUpdateProfile() {
       weight?: number;
       goal?: 'bulking' | 'cutting' | 'maintenance';
       trainingType?: string;
+      activityLevel?: string;
     }) => {
       const { data } = await apiClient.patch<User>('/users', payload);
       return data;

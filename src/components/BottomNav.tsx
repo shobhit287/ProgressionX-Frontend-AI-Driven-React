@@ -1,14 +1,14 @@
 import { memo } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Dumbbell, BarChart3, Weight, Bot, MessageCircleQuestion } from 'lucide-react';
+import { Home, Dumbbell, BarChart3, Weight, Bot, UtensilsCrossed } from 'lucide-react';
 
 const navItems = [
   { to: '/', icon: Home, label: 'Dashboard' },
   { to: '/splits', icon: Dumbbell, label: 'Splits' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/weight', icon: Weight, label: 'Weight' },
+  { to: '/diet', icon: UtensilsCrossed, label: 'Diet' },
   { to: '/ai', icon: Bot, label: 'AI' },
-  { to: '/ask', icon: MessageCircleQuestion, label: 'Ask' },
 ];
 
 const BottomNav = memo(function BottomNav() {

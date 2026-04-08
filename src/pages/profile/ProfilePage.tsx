@@ -24,6 +24,7 @@ export default function ProfilePage() {
   const [weight, setWeight] = useState('');
   const [goal, setGoal] = useState<'bulking' | 'cutting' | 'maintenance'>('maintenance');
   const [trainingType, setTrainingType] = useState<TrainingType>('hypertrophy');
+  const [activityLevel, setActivityLevel] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
 
   // Password form state
@@ -41,6 +42,7 @@ export default function ProfilePage() {
       setWeight(String(user.weight));
       setGoal(user.goal);
       setTrainingType(user.trainingType || 'hypertrophy');
+      setActivityLevel(user.activityLevel || '');
     }
   }, [user]);
 
@@ -50,7 +52,7 @@ export default function ProfilePage() {
 
     setProfileSaved(false);
     updateProfile.mutate(
-      { firstName: firstName.trim(), lastName: lastName.trim(), weight: w, goal, trainingType },
+      { firstName: firstName.trim(), lastName: lastName.trim(), weight: w, goal, trainingType, activityLevel: activityLevel.trim() || undefined },
       {
         onSuccess: () => {
           setProfileSaved(true);
@@ -190,6 +192,17 @@ export default function ProfilePage() {
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-text-muted mb-1 block">Activity Level</label>
+            <textarea
+              value={activityLevel}
+              onChange={(e) => setActivityLevel(e.target.value)}
+              placeholder="e.g. 12km cycling, 2hr strength training, 5hr sitting office job"
+              rows={3}
+              className="w-full rounded-lg bg-background border border-border px-3 py-2 text-text text-sm placeholder:text-surface-light focus:border-primary outline-none resize-none"
+            />
           </div>
 
           {profileSaved && (
