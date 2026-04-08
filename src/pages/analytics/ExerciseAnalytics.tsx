@@ -52,7 +52,9 @@ export default function ExerciseAnalytics({ exerciseName }: Props) {
           <input
             type="date"
             value={dateFrom}
+            max={dateTo || new Date().toISOString().slice(0, 10)}
             onChange={(e) => setDateFrom(e.target.value)}
+            style={{ colorScheme: 'dark' }}
             className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none"
           />
         </div>
@@ -61,7 +63,10 @@ export default function ExerciseAnalytics({ exerciseName }: Props) {
           <input
             type="date"
             value={dateTo}
+            min={dateFrom || undefined}
+            max={new Date().toISOString().slice(0, 10)}
             onChange={(e) => setDateTo(e.target.value)}
+            style={{ colorScheme: 'dark' }}
             className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none"
           />
         </div>

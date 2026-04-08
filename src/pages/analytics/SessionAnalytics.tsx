@@ -53,6 +53,7 @@ export default function SessionAnalytics() {
             <input
               type="date"
               value={dateFrom}
+              max={dateTo || new Date().toISOString().slice(0, 10)}
               onChange={(e) => setDateFrom(e.target.value)}
               className="w-full h-11 rounded-lg bg-[#1e293b] border border-[#334155] pl-9 pr-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-75"
               placeholder="yyyy-mm-dd"
@@ -66,6 +67,8 @@ export default function SessionAnalytics() {
             <input
               type="date"
               value={dateTo}
+              min={dateFrom || undefined}
+              max={new Date().toISOString().slice(0, 10)}
               onChange={(e) => setDateTo(e.target.value)}
               className="w-full h-11 rounded-lg bg-[#1e293b] border border-[#334155] pl-9 pr-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-75"
               placeholder="yyyy-mm-dd"

@@ -57,7 +57,8 @@ export default function AIPage() {
   }, []);
 
   const filteredExercises = useMemo(() => {
-    if (!allExerciseNames || !debouncedQuery) return [];
+    if (!allExerciseNames) return [];
+    if (!debouncedQuery) return allExerciseNames;
     return allExerciseNames.filter((name) =>
       name.toLowerCase().includes(debouncedQuery),
     );
@@ -194,13 +195,14 @@ export default function AIPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Bench Press"
+                  placeholder="Start typing to search..."
                   value={form.exerciseName}
                   onChange={(e) => handleExerciseInput(e.target.value)}
-                  onFocus={() => form.exerciseName.trim() && setShowDropdown(true)}
+                  onFocus={() => setShowDropdown(true)}
+                  autoComplete="off"
                   className="w-full h-12 rounded-lg bg-[#0f172a] border border-[#334155] px-4 text-[#f1f5f9] text-base placeholder:text-[#475569] focus:border-[#6366f1] outline-none"
                 />
-                {showDropdown && form.exerciseName.trim() && (
+                {showDropdown && (
                   <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1e293b] border border-[#334155] rounded-lg max-h-48 overflow-y-auto shadow-lg">
                     {filteredExercises.length > 0 ? (
                       filteredExercises.map((name) => (
@@ -233,7 +235,8 @@ export default function AIPage() {
                   value={form.dateFrom}
                   max={form.dateTo || today}
                   onChange={(e) => updateForm({ dateFrom: e.target.value })}
-                  className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none"
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none"
                 />
               </div>
               <div>
@@ -244,7 +247,8 @@ export default function AIPage() {
                   min={form.dateFrom || undefined}
                   max={today}
                   onChange={(e) => updateForm({ dateTo: e.target.value })}
-                  className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none"
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none"
                 />
               </div>
             </div>
