@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import SessionAnalytics from '@/pages/analytics/SessionAnalytics';
 import ExerciseAnalytics from '@/pages/analytics/ExerciseAnalytics';
+import { useExerciseNames } from '@/api/exercises';
 import { Search } from 'lucide-react';
 
 type Tab = 'sessions' | 'exercises';
@@ -10,9 +11,53 @@ export default function AnalyticsPage() {
   const [exerciseName, setExerciseName] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
+  // Exercise autocomplete
+  const { data: allExerciseNames } = useExerciseNames();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleExerciseInput = useCallback((value: string) => {
+    setSearchInput(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedQuery(value.trim().toLowerCase());
+      setShowDropdown(true);
+    }, 300);
+  }, []);
+
+  const filteredExercises = useMemo(() => {
+    if (!allExerciseNames) return [];
+    if (!debouncedQuery) return allExerciseNames;
+    return allExerciseNames.filter((name) =>
+      name.toLowerCase().includes(debouncedQuery),
+    );
+  }, [allExerciseNames, debouncedQuery]);
+
+  const selectExercise = (name: string) => {
+    setSearchInput(name);
+    setExerciseName(name);
+    setShowDropdown(false);
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const handleExerciseSearch = () => {
     const trimmed = searchInput.trim();
-    if (trimmed) setExerciseName(trimmed);
+    if (trimmed) {
+      setExerciseName(trimmed);
+      setShowDropdown(false);
+    }
   };
 
   return (
@@ -42,18 +87,39 @@ export default function AnalyticsPage() {
         {/* Exercises tab */}
         {tab === 'exercises' && (
           <div className="space-y-6">
-            {/* Exercise search */}
+            {/* Exercise search with autocomplete */}
             <div className="flex gap-2">
-              <div className="relative flex-1">
+              <div className="relative flex-1" ref={dropdownRef}>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8]" />
                 <input
                   type="text"
-                  placeholder="Exercise name (e.g. Bench Press)"
+                  placeholder="Start typing to search exercises..."
                   value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
+                  onChange={(e) => handleExerciseInput(e.target.value)}
+                  onFocus={() => setShowDropdown(true)}
                   onKeyDown={(e) => e.key === 'Enter' && handleExerciseSearch()}
+                  autoComplete="off"
                   className="w-full h-12 rounded-xl bg-[#1e293b] border border-[#334155] pl-10 pr-4 text-[#f1f5f9] text-base placeholder:text-[#475569] focus:border-[#6366f1] outline-none"
                 />
+                {showDropdown && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1e293b] border border-[#334155] rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                    {filteredExercises.length > 0 ? (
+                      filteredExercises.map((name) => (
+                        <button
+                          key={name}
+                          onClick={() => selectExercise(name)}
+                          className="w-full text-left px-4 py-2.5 text-sm text-[#f1f5f9] hover:bg-[#334155] transition-colors"
+                        >
+                          {name}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-[#94a3b8]">
+                        No matching exercise found in your splits
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 onClick={handleExerciseSearch}

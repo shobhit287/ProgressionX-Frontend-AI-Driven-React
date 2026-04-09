@@ -236,7 +236,8 @@ export default function AIPage() {
                   max={form.dateTo || today}
                   onChange={(e) => updateForm({ dateFrom: e.target.value })}
                   style={{ colorScheme: 'dark' }}
-                  className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none"
+                  className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none appearance-none ${form.dateFrom ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
+                  placeholder="Select start date"
                 />
               </div>
               <div>
@@ -248,7 +249,8 @@ export default function AIPage() {
                   max={today}
                   onChange={(e) => updateForm({ dateTo: e.target.value })}
                   style={{ colorScheme: 'dark' }}
-                  className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none appearance-none"
+                  className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none appearance-none ${form.dateTo ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
+                  placeholder="Select end date"
                 />
               </div>
             </div>

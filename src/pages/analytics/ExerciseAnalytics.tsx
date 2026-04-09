@@ -55,7 +55,8 @@ export default function ExerciseAnalytics({ exerciseName }: Props) {
             max={dateTo || new Date().toISOString().slice(0, 10)}
             onChange={(e) => setDateFrom(e.target.value)}
             style={{ colorScheme: 'dark' }}
-            className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none"
+            className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none ${dateFrom ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
+            placeholder="Select start date"
           />
         </div>
         <div>
@@ -67,7 +68,8 @@ export default function ExerciseAnalytics({ exerciseName }: Props) {
             max={new Date().toISOString().slice(0, 10)}
             onChange={(e) => setDateTo(e.target.value)}
             style={{ colorScheme: 'dark' }}
-            className="w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] text-sm focus:border-[#6366f1] outline-none"
+            className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none ${dateTo ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
+            placeholder="Select end date"
           />
         </div>
       </div>
