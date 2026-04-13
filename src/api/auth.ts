@@ -23,6 +23,7 @@ interface SignupPayload {
   goal: 'bulking' | 'cutting' | 'maintenance';
   gender: 'male' | 'female' | 'other';
   trainingType?: string;
+  experienceLevel?: string;
   mobileNumber?: string;
 }
 
@@ -79,6 +80,7 @@ export function useUpdateProfile() {
       weight?: number;
       goal?: 'bulking' | 'cutting' | 'maintenance';
       trainingType?: string;
+      experienceLevel?: string;
       activityLevel?: string;
     }) => {
       const { data } = await apiClient.patch<User>('/users', payload);

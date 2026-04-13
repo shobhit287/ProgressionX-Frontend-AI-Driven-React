@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/api/client';
-import type { WorkoutSplit } from '@/types';
+import type { WorkoutSplit, GeneratedDay } from '@/types';
 
 export const splitKeys = {
   all: ['splits'] as const,
@@ -66,6 +66,24 @@ export function useUpdateSplit() {
       void queryClient.invalidateQueries({ queryKey: splitKeys.all });
       void queryClient.invalidateQueries({ queryKey: splitKeys.today });
       void queryClient.invalidateQueries({ queryKey: splitKeys.detail(variables.id) });
+    },
+  });
+}
+
+export function useBulkReplaceSchedule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (days: GeneratedDay[]) => {
+      const { data } = await apiClient.post<WorkoutSplit[]>(
+        '/splits/bulk-replace-schedule',
+        { days },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: splitKeys.all });
+      void queryClient.invalidateQueries({ queryKey: splitKeys.today });
     },
   });
 }

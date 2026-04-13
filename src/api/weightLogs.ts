@@ -14,12 +14,22 @@ interface WeightLogFilters {
   endDate?: string;
 }
 
+function toBackendParams(filters?: WeightLogFilters) {
+  if (!filters) return undefined;
+  const params: Record<string, string | number> = {};
+  if (filters.startDate) params.fromDate = filters.startDate;
+  if (filters.endDate) params.toDate = filters.endDate;
+  if (filters.page) params.page = filters.page;
+  if (filters.pageSize) params.pageSize = filters.pageSize;
+  return params;
+}
+
 export function useWeightLogs(filters?: WeightLogFilters) {
   return useQuery({
     queryKey: weightLogKeys.all(filters),
     queryFn: async () => {
       const { data } = await apiClient.get<PaginatedResponse<WeightLog>>('/weight-logs', {
-        params: filters,
+        params: toBackendParams(filters),
       });
       return data;
     },
@@ -31,7 +41,7 @@ export function useWeightAnalytics(filters?: WeightLogFilters) {
     queryKey: weightLogKeys.analytics(filters),
     queryFn: async () => {
       const { data } = await apiClient.get<WeightAnalytics>('/weight-logs/analytics', {
-        params: filters,
+        params: toBackendParams(filters),
       });
       return data;
     },

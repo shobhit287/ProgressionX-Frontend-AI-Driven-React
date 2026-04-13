@@ -95,9 +95,13 @@ export function useReorderExercises() {
       splitId: string;
       orderedIds: string[];
     }) => {
+      const exercises = orderedIds.map((id, idx) => ({
+        id,
+        displayOrder: idx + 1,
+      }));
       const { data } = await apiClient.patch<SplitExercise[]>(
         `/splits/${splitId}/exercises/reorder`,
-        { exercises: orderedIds },
+        { exercises },
       );
       return data;
     },

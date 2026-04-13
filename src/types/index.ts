@@ -1,5 +1,6 @@
 // User
 export type TrainingType = 'hypertrophy' | 'strength' | 'powerbuilding' | 'endurance' | 'general_fitness';
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export interface User {
   id: string;
@@ -11,12 +12,35 @@ export interface User {
   goal: 'bulking' | 'cutting' | 'maintenance';
   gender: 'male' | 'female' | 'other';
   trainingType: TrainingType;
+  experienceLevel: ExperienceLevel;
   activityLevel?: string;
   mobileNumber?: string;
   email: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// AI Generated Weekly Schedule
+export interface GeneratedExercise {
+  name: string;
+  displayOrder: number;
+  defaultSets: number;
+  exerciseType: 'standard' | 'superset' | 'dropset' | 'giant_set';
+  restSeconds: number;
+  notes?: string | null;
+}
+
+export interface GeneratedDay {
+  day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+  name: string;
+  description?: string | null;
+  isRest: boolean;
+  exercises: GeneratedExercise[];
+}
+
+export interface WeeklyScheduleResponse {
+  days: GeneratedDay[];
 }
 
 // Auth

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ChevronRight } from 'lucide-react';
-import { useSplits, useCreateSplit } from '@/api/splits';
-import type { WorkoutSplit } from '@/types';
+import { Plus, ChevronRight, Sparkles, Loader2 } from 'lucide-react';
+import { useSplits, useCreateSplit, useBulkReplaceSchedule } from '@/api/splits';
+import { useGenerateWeeklySchedule } from '@/api/ai';
+import type { WorkoutSplit, GeneratedDay } from '@/types';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
@@ -36,6 +37,13 @@ export default function SplitList() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
+  const generateSchedule = useGenerateWeeklySchedule();
+  const bulkReplace = useBulkReplaceSchedule();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDays, setPreviewDays] = useState<GeneratedDay[] | null>(null);
+  const [confirmReplaceOpen, setConfirmReplaceOpen] = useState(false);
+  const [aiError, setAiError] = useState('');
+
   // Map day → split
   const splitByDay = new Map<DayEnum, WorkoutSplit>();
   splits?.forEach((s: WorkoutSplit) => splitByDay.set(s.day, s));
@@ -62,6 +70,42 @@ export default function SplitList() {
     }
   }
 
+  async function handleGenerateAI() {
+    setAiError('');
+    try {
+      const result = await generateSchedule.mutateAsync();
+      setPreviewDays(result.days);
+      setPreviewOpen(true);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Failed to generate schedule. Please try again.';
+      setAiError(msg);
+    }
+  }
+
+  function handleUseSchedule() {
+    if (!previewDays) return;
+    const hasExisting = (splits?.length ?? 0) > 0;
+    if (hasExisting) {
+      setConfirmReplaceOpen(true);
+    } else {
+      void applySchedule();
+    }
+  }
+
+  async function applySchedule() {
+    if (!previewDays) return;
+    try {
+      await bulkReplace.mutateAsync(previewDays);
+      setConfirmReplaceOpen(false);
+      setPreviewOpen(false);
+      setPreviewDays(null);
+    } catch {
+      // handled by query
+    }
+  }
+
   function handleDayClick(day: DayEnum) {
     const split = splitByDay.get(day);
     if (split) {
@@ -76,6 +120,35 @@ export default function SplitList() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-text">Weekly Splits</h1>
       </div>
+
+      <button
+        type="button"
+        onClick={handleGenerateAI}
+        disabled={generateSchedule.isPending}
+        className="w-full rounded-xl p-4 bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/40 flex items-center gap-3 active:scale-[0.99] transition-transform disabled:opacity-60"
+      >
+        <div className="w-10 h-10 rounded-lg bg-primary/30 flex items-center justify-center flex-shrink-0">
+          {generateSchedule.isPending ? (
+            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+          ) : (
+            <Sparkles className="w-5 h-5 text-primary" />
+          )}
+        </div>
+        <div className="text-left flex-1">
+          <p className="text-text font-semibold text-sm">
+            {generateSchedule.isPending ? 'Generating your schedule...' : 'Create Weekly Schedule by AI'}
+          </p>
+          <p className="text-text-muted text-xs">
+            Personalized to your goal, training type & experience level
+          </p>
+        </div>
+      </button>
+
+      {aiError && (
+        <div className="rounded-lg border border-danger/30 bg-danger/10 text-danger text-sm px-3 py-2">
+          {aiError}
+        </div>
+      )}
 
       <div className="space-y-3">
         {isLoading
@@ -165,6 +238,104 @@ export default function SplitList() {
             Create Split
           </Button>
         </form>
+      </Modal>
+
+      {/* AI preview modal */}
+      <Modal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title="Your AI-Generated Weekly Schedule"
+      >
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          {previewDays?.map((d) => (
+            <div
+              key={d.day}
+              className="rounded-lg border border-border bg-background p-3"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-text font-semibold text-sm">
+                  {capitalize(d.day)} — {d.name}
+                </p>
+                {d.isRest && (
+                  <span className="text-xs text-text-muted px-2 py-0.5 rounded-full bg-surface">
+                    Rest
+                  </span>
+                )}
+              </div>
+              {d.description && (
+                <p className="text-text-muted text-xs mb-2">{d.description}</p>
+              )}
+              {d.exercises.length > 0 && (
+                <ul className="space-y-1 mt-2">
+                  {d.exercises.map((ex) => (
+                    <li
+                      key={`${d.day}-${ex.displayOrder}`}
+                      className="text-xs text-text flex justify-between"
+                    >
+                      <span>
+                        {ex.displayOrder}. {ex.name}
+                      </span>
+                      <span className="text-text-muted">
+                        {ex.defaultSets} sets · {ex.restSeconds}s rest
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2 mt-4">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setPreviewOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            className="flex-1"
+            loading={bulkReplace.isPending}
+            onClick={handleUseSchedule}
+          >
+            Use This Schedule
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Confirm overwrite modal */}
+      <Modal
+        open={confirmReplaceOpen}
+        onClose={() => setConfirmReplaceOpen(false)}
+        title="Replace existing schedule?"
+      >
+        <p className="text-text text-sm">
+          Your current splits and exercises will be{' '}
+          <span className="text-danger font-semibold">overwritten</span> by this new
+          AI-generated schedule. This cannot be undone.
+        </p>
+        <p className="text-text-muted text-xs mt-2">
+          Past workout sessions will be preserved.
+        </p>
+        <div className="flex gap-2 mt-4">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setConfirmReplaceOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            className="flex-1"
+            loading={bulkReplace.isPending}
+            onClick={applySchedule}
+          >
+            Yes, Replace
+          </Button>
+        </div>
       </Modal>
     </div>
   );

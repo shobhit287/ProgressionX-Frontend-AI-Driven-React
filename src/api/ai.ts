@@ -1,13 +1,27 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import apiClient from '@/api/client';
-import type { AIAnalysisResponse, SessionCoachResponse, FitnessChatResponse, SessionPlanResponse } from '@/types';
+import type { AIAnalysisResponse, SessionCoachResponse, FitnessChatResponse, SessionPlanResponse, WeeklyScheduleResponse } from '@/types';
+
+interface DateRange {
+  startDate?: string;
+  endDate?: string;
+}
+
+function toBackendDateRange(payload?: DateRange) {
+  if (!payload) return undefined;
+  const out: Record<string, string> = {};
+  if (payload.startDate) out.fromDate = payload.startDate;
+  if (payload.endDate) out.toDate = payload.endDate;
+  return out;
+}
 
 export function useAnalyzeSessions() {
   return useMutation({
-    mutationFn: async (payload?: { startDate?: string; endDate?: string }) => {
+    mutationFn: async (payload?: DateRange & { question?: string }) => {
+      const body = { ...toBackendDateRange(payload), question: payload?.question };
       const { data } = await apiClient.post<AIAnalysisResponse>(
         '/ai/analyze-sessions',
-        payload,
+        body,
       );
       return data;
     },
@@ -16,10 +30,15 @@ export function useAnalyzeSessions() {
 
 export function useAnalyzeExercise() {
   return useMutation({
-    mutationFn: async (payload: { exerciseName: string; startDate?: string; endDate?: string }) => {
+    mutationFn: async (payload: { exerciseName: string; question?: string } & DateRange) => {
+      const body = {
+        exerciseName: payload.exerciseName,
+        question: payload.question,
+        ...toBackendDateRange(payload),
+      };
       const { data } = await apiClient.post<AIAnalysisResponse>(
         '/ai/analyze-exercise',
-        payload,
+        body,
       );
       return data;
     },
@@ -28,10 +47,11 @@ export function useAnalyzeExercise() {
 
 export function useAnalyzeWeight() {
   return useMutation({
-    mutationFn: async (payload?: { startDate?: string; endDate?: string }) => {
+    mutationFn: async (payload?: DateRange & { question?: string }) => {
+      const body = { ...toBackendDateRange(payload), question: payload?.question };
       const { data } = await apiClient.post<AIAnalysisResponse>(
         '/ai/analyze-weight',
-        payload,
+        body,
       );
       return data;
     },
@@ -59,6 +79,17 @@ export function useSessionCoach() {
       const { data } = await apiClient.post<SessionCoachResponse>(
         '/ai/session-coach',
         payload,
+      );
+      return data;
+    },
+  });
+}
+
+export function useGenerateWeeklySchedule() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.post<WeeklyScheduleResponse>(
+        '/ai/generate-weekly-schedule',
       );
       return data;
     },

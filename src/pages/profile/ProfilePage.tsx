@@ -3,7 +3,7 @@ import { useCurrentUser, useUpdateProfile, useChangePassword } from '@/api/auth'
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { User, Lock, Check, AlertCircle } from 'lucide-react';
-import type { TrainingType } from '@/types';
+import type { TrainingType, ExperienceLevel } from '@/types';
 
 const TRAINING_TYPES: { value: TrainingType; label: string }[] = [
   { value: 'hypertrophy', label: 'Hypertrophy (Muscle Growth)' },
@@ -11,6 +11,12 @@ const TRAINING_TYPES: { value: TrainingType; label: string }[] = [
   { value: 'powerbuilding', label: 'Powerbuilding' },
   { value: 'endurance', label: 'Endurance' },
   { value: 'general_fitness', label: 'General Fitness' },
+];
+
+const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
+  { value: 'beginner', label: 'Beginner (0-1 year)' },
+  { value: 'intermediate', label: 'Intermediate (1-3 years)' },
+  { value: 'advanced', label: 'Advanced (3+ years)' },
 ];
 
 export default function ProfilePage() {
@@ -24,6 +30,7 @@ export default function ProfilePage() {
   const [weight, setWeight] = useState('');
   const [goal, setGoal] = useState<'bulking' | 'cutting' | 'maintenance'>('maintenance');
   const [trainingType, setTrainingType] = useState<TrainingType>('hypertrophy');
+  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('beginner');
   const [activityLevel, setActivityLevel] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
 
@@ -42,6 +49,7 @@ export default function ProfilePage() {
       setWeight(String(user.weight));
       setGoal(user.goal);
       setTrainingType(user.trainingType || 'hypertrophy');
+      setExperienceLevel(user.experienceLevel || 'beginner');
       setActivityLevel(user.activityLevel || '');
     }
   }, [user]);
@@ -52,7 +60,7 @@ export default function ProfilePage() {
 
     setProfileSaved(false);
     updateProfile.mutate(
-      { firstName: firstName.trim(), lastName: lastName.trim(), weight: w, goal, trainingType, activityLevel: activityLevel.trim() || undefined },
+      { firstName: firstName.trim(), lastName: lastName.trim(), weight: w, goal, trainingType, experienceLevel, activityLevel: activityLevel.trim() || undefined },
       {
         onSuccess: () => {
           setProfileSaved(true);
@@ -190,6 +198,19 @@ export default function ProfilePage() {
             >
               {TRAINING_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-text-muted mb-1 block">Experience Level</label>
+            <select
+              value={experienceLevel}
+              onChange={(e) => setExperienceLevel(e.target.value as ExperienceLevel)}
+              className="w-full h-11 rounded-lg bg-background border border-border px-3 text-text text-sm focus:border-primary outline-none appearance-none"
+            >
+              {EXPERIENCE_LEVELS.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
               ))}
             </select>
           </div>

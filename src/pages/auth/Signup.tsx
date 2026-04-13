@@ -14,6 +14,11 @@ const TRAINING_TYPES = [
   { value: 'endurance', label: 'Endurance' },
   { value: 'general_fitness', label: 'General Fitness' },
 ] as const;
+const EXPERIENCE_LEVELS = [
+  { value: 'beginner', label: 'Beginner (0-1 year)' },
+  { value: 'intermediate', label: 'Intermediate (1-3 years)' },
+  { value: 'advanced', label: 'Advanced (3+ years)' },
+] as const;
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -33,6 +38,7 @@ export default function Signup() {
     goal: 'bulking' as (typeof GOALS)[number],
     gender: 'male' as (typeof GENDERS)[number],
     trainingType: 'hypertrophy' as string,
+    experienceLevel: 'beginner' as string,
     mobileNumber: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -73,6 +79,7 @@ export default function Signup() {
         goal: form.goal,
         gender: form.gender,
         trainingType: form.trainingType,
+        experienceLevel: form.experienceLevel,
         mobileNumber: form.mobileNumber.trim() || undefined,
       });
 
@@ -204,6 +211,22 @@ export default function Signup() {
               {TRAINING_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Experience Level dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-[#f1f5f9] mb-1">Experience Level</label>
+            <select
+              value={form.experienceLevel}
+              onChange={(e) => updateField('experienceLevel', e.target.value)}
+              className="w-full rounded-lg bg-[#0f172a] border border-[#334155] text-[#f1f5f9] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
+            >
+              {EXPERIENCE_LEVELS.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
                 </option>
               ))}
             </select>
