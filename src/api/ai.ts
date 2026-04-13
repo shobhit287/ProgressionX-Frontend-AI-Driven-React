@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import apiClient from '@/api/client';
-import type { AIAnalysisResponse, SessionCoachResponse, FitnessChatResponse, SessionPlanResponse, WeeklyScheduleResponse } from '@/types';
+import type { AIAnalysisResponse, SessionCoachResponse, FitnessChatResponse, SessionPlanResponse, WeeklyScheduleResponse, GeneratedDay } from '@/types';
 
 interface DateRange {
   startDate?: string;
@@ -87,9 +87,22 @@ export function useSessionCoach() {
 
 export function useGenerateWeeklySchedule() {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload?: { preferences?: string }) => {
       const { data } = await apiClient.post<WeeklyScheduleResponse>(
         '/ai/generate-weekly-schedule',
+        payload || {},
+      );
+      return data;
+    },
+  });
+}
+
+export function useCustomizeSplit() {
+  return useMutation({
+    mutationFn: async (payload: { splitId: string; preferences?: string }) => {
+      const { data } = await apiClient.post<GeneratedDay>(
+        '/ai/customize-split',
+        payload,
       );
       return data;
     },

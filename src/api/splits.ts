@@ -101,3 +101,24 @@ export function useDeleteSplit() {
     },
   });
 }
+
+export function useReplaceSingleSplit() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: GeneratedDay }) => {
+      const { data: updatedSplit } = await apiClient.post<WorkoutSplit>(
+        `/splits/${id}/replace`,
+        data,
+      );
+      return updatedSplit;
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: splitKeys.all });
+      void queryClient.invalidateQueries({ queryKey: splitKeys.today });
+      void queryClient.invalidateQueries({ queryKey: splitKeys.detail(variables.id) });
+      // Also invalidate exercises for this split
+      void queryClient.invalidateQueries({ queryKey: ['exercises', variables.id] });
+    },
+  });
+}

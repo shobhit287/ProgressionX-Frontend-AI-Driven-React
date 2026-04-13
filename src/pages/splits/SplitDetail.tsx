@@ -8,8 +8,11 @@ import {
   useUpdateExercise,
   useDeleteExercise,
 } from '@/api/exercises';
-import type { SplitExercise, WorkoutSplit } from '@/types';
+import { useCustomizeSplit } from '@/api/ai';
+import { useReplaceSingleSplit } from '@/api/splits';
+import type { SplitExercise, WorkoutSplit, GeneratedDay } from '@/types';
 import Button from '@/components/ui/Button';
+import { Sparkles } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
@@ -61,6 +64,15 @@ export default function SplitDetail() {
   const [splitName, setSplitName] = useState('');
   const [splitDay, setSplitDay] = useState<DayEnum>('monday');
   const [splitDescription, setSplitDescription] = useState('');
+
+  const customizeSplitAi = useCustomizeSplit();
+  const replaceSplit = useReplaceSingleSplit();
+  const [aiPreferences, setAiPreferences] = useState('');
+  const [prefModalOpen, setPrefModalOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDay, setPreviewDay] = useState<GeneratedDay | null>(null);
+  const [confirmReplaceOpen, setConfirmReplaceOpen] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   function updateField(field: keyof ExerciseForm, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -144,6 +156,37 @@ export default function SplitDetail() {
     }
   }
 
+  async function handleCustomizeAi() {
+    if (!id) return;
+    setAiError('');
+    setPrefModalOpen(false);
+    try {
+      const result = await customizeSplitAi.mutateAsync({
+        splitId: id,
+        preferences: aiPreferences.trim() || undefined,
+      });
+      setPreviewDay(result);
+      setPreviewOpen(true);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Failed to customize split. Please try again.';
+      setAiError(msg);
+    }
+  }
+
+  async function handleApplyAi() {
+    if (!id || !previewDay) return;
+    try {
+      await replaceSplit.mutateAsync({ id, data: previewDay });
+      setConfirmReplaceOpen(false);
+      setPreviewOpen(false);
+      setPreviewDay(null);
+    } catch {
+      // handled by query
+    }
+  }
+
   const isLoading = splitLoading || exLoading;
   const isMutating = createExercise.isPending || updateExercise.isPending;
 
@@ -199,7 +242,20 @@ export default function SplitDetail() {
           >
             <Pencil className="w-5 h-5 text-[#94a3b8]" />
           </button>
+          <button
+            onClick={() => setPrefModalOpen(true)}
+            className="p-2 rounded-lg hover:bg-[#6366f1]/10 transition-colors"
+            title="Customize with AI"
+          >
+            <Sparkles className="w-5 h-5 text-[#6366f1]" />
+          </button>
         </div>
+
+        {aiError && (
+          <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 text-danger text-sm px-3 py-2">
+            {aiError}
+          </div>
+        )}
 
         {split.description && (
           <p className="text-[#94a3b8] text-sm mb-4">{split.description}</p>
@@ -429,6 +485,126 @@ export default function SplitDetail() {
             onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
           >
             Delete
+          </Button>
+        </div>
+      </Modal>
+
+      {/* AI Customization Preference Modal */}
+      <Modal
+        open={prefModalOpen}
+        onClose={() => setPrefModalOpen(false)}
+        title="Customize Split with AI"
+      >
+        <div className="space-y-4">
+          <p className="text-text-muted text-sm">
+            Focus on specific muscles, adjust intensity, or change the workout style.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-[#f1f5f9] mb-1">
+              Preferences & Context (optional)
+            </label>
+            <textarea
+              value={aiPreferences}
+              onChange={(e) => setAiPreferences(e.target.value)}
+              placeholder="e.g. increase focus on biceps, add a dropset for bench press"
+              rows={4}
+              className="w-full rounded-lg bg-[#0f172a] border border-[#334155] text-[#f1f5f9] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1] resize-none"
+            />
+          </div>
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full"
+            onClick={handleCustomizeAi}
+            loading={customizeSplitAi.isPending}
+          >
+            <Sparkles className="w-5 h-5 mr-2" />
+            Generate New Plan
+          </Button>
+        </div>
+      </Modal>
+
+      {/* AI Preview Modal */}
+      <Modal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title="AI-Generated Split Preview"
+      >
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          {previewDay && (
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-text font-semibold text-sm mb-1">
+                {previewDay.name}
+              </p>
+              {previewDay.description && (
+                <p className="text-text-muted text-xs mb-2">{previewDay.description}</p>
+              )}
+              {previewDay.exercises.length > 0 ? (
+                <ul className="space-y-1 mt-2">
+                  {previewDay.exercises.map((ex) => (
+                    <li
+                      key={ex.displayOrder}
+                      className="text-xs text-text flex justify-between"
+                    >
+                      <span>
+                        {ex.displayOrder}. {ex.name}
+                      </span>
+                      <span className="text-text-muted">
+                        {ex.defaultSets} sets · {ex.restSeconds}s rest
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-text-muted text-xs">No exercises / Rest day</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 mt-4">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setPreviewOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            className="flex-1"
+            onClick={() => setConfirmReplaceOpen(true)}
+          >
+            Use This Plan
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Confirm Replace Modal */}
+      <Modal
+        open={confirmReplaceOpen}
+        onClose={() => setConfirmReplaceOpen(false)}
+        title="Replace current split?"
+      >
+        <p className="text-text text-sm">
+          Your current exercises for <span className="font-bold">{split.name}</span> will be{' '}
+          <span className="text-danger font-semibold">overwritten</span>. This cannot be undone.
+        </p>
+        <div className="flex gap-2 mt-4">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setConfirmReplaceOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            className="flex-1"
+            loading={replaceSplit.isPending}
+            onClick={handleApplyAi}
+          >
+            Yes, Replace
           </Button>
         </div>
       </Modal>

@@ -42,6 +42,8 @@ export default function SplitList() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDays, setPreviewDays] = useState<GeneratedDay[] | null>(null);
   const [confirmReplaceOpen, setConfirmReplaceOpen] = useState(false);
+  const [aiPreferences, setAiPreferences] = useState('');
+  const [prefModalOpen, setPrefModalOpen] = useState(false);
   const [aiError, setAiError] = useState('');
 
   // Map day → split
@@ -72,8 +74,11 @@ export default function SplitList() {
 
   async function handleGenerateAI() {
     setAiError('');
+    setPrefModalOpen(false);
     try {
-      const result = await generateSchedule.mutateAsync();
+      const result = await generateSchedule.mutateAsync({
+        preferences: aiPreferences.trim() || undefined,
+      });
       setPreviewDays(result.days);
       setPreviewOpen(true);
     } catch (err: unknown) {
@@ -123,7 +128,7 @@ export default function SplitList() {
 
       <button
         type="button"
-        onClick={handleGenerateAI}
+        onClick={() => setPrefModalOpen(true)}
         disabled={generateSchedule.isPending}
         className="w-full rounded-xl p-4 bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/40 flex items-center gap-3 active:scale-[0.99] transition-transform disabled:opacity-60"
       >
@@ -143,6 +148,41 @@ export default function SplitList() {
           </p>
         </div>
       </button>
+
+      {/* AI Preferences Modal */}
+      <Modal
+        open={prefModalOpen}
+        onClose={() => setPrefModalOpen(false)}
+        title="AI Schedule Preferences"
+      >
+        <div className="space-y-4">
+          <p className="text-text-muted text-sm">
+            Tell the AI coach about your current routine, focus areas, or any specific needs.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-[#f1f5f9] mb-1">
+              Preferences & Context (optional)
+            </label>
+            <textarea
+              value={aiPreferences}
+              onChange={(e) => setAiPreferences(e.target.value)}
+              placeholder="e.g. following this from last 4 months, lower body growing slowly"
+              rows={4}
+              className="w-full rounded-lg bg-[#0f172a] border border-[#334155] text-[#f1f5f9] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1] resize-none"
+            />
+          </div>
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full"
+            onClick={handleGenerateAI}
+            loading={generateSchedule.isPending}
+          >
+            <Sparkles className="w-5 h-5 mr-2" />
+            Generate Schedule
+          </Button>
+        </div>
+      </Modal>
 
       {aiError && (
         <div className="rounded-lg border border-danger/30 bg-danger/10 text-danger text-sm px-3 py-2">
