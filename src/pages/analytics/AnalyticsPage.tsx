@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import SessionAnalytics from '@/pages/analytics/SessionAnalytics';
 import ExerciseAnalytics from '@/pages/analytics/ExerciseAnalytics';
 import { useExerciseNames } from '@/api/exercises';
-import { Search } from 'lucide-react';
+import { Search, FileDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 type Tab = 'sessions' | 'exercises';
 
@@ -62,7 +63,16 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Analytics</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Analytics</h1>
+        <Link
+          to="/export"
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#1e293b] border border-[#334155] text-[#cbd5e1] text-sm font-semibold hover:border-[#6366f1] hover:text-white transition-colors"
+        >
+          <FileDown size={16} />
+          Export
+        </Link>
+      </div>
 
         {/* Tabs */}
         <div className="flex border-b border-border mb-6">
