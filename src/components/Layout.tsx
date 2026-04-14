@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, UserCircle } from 'lucide-react';
+import { LogOut, UserCircle, HelpCircle } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { useAuthStore } from '@/store/auth';
+import HelpModal from '@/components/HelpModal';
 
 export default function Layout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
   const isSessionPage = pathname.startsWith('/session/');
+
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -23,6 +27,13 @@ export default function Layout() {
               <span className="text-primary">Progression</span>X
             </h1>
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => setIsHelpOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-border hover:text-text transition-colors"
+                title="Help & FAQ"
+              >
+                <HelpCircle size={18} />
+              </button>
               <button
                 onClick={() => navigate('/profile')}
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-border hover:text-text transition-colors"
@@ -45,6 +56,7 @@ export default function Layout() {
       </main>
 
       {!isSessionPage && <BottomNav />}
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }
