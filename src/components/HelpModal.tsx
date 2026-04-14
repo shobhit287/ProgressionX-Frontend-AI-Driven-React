@@ -1,5 +1,5 @@
 import Modal from '@/components/ui/Modal';
-import { HelpCircle, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -36,10 +36,10 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
         <p className="text-sm text-muted mb-4">
           New to training? Here are some key concepts to help you get the most out of ProgressionX.
         </p>
-        
+
         <div className="space-y-3">
           {FAQ_DATA.map((faq, index) => (
-            <div 
+            <div
               key={index}
               className="group rounded-xl border border-border bg-surface-light p-4 transition-all hover:border-primary/50 hover:bg-primary/5"
             >
