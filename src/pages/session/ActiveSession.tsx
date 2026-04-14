@@ -7,7 +7,18 @@ import AiSessionPlan from '@/components/AiSessionPlan';
 import type { PreviousSetData } from '@/api/sets';
 import type { SessionExercise, ExerciseSet } from '@/types';
 import { formatDuration, formatWeight } from '@/utils/format';
-import { Timer, ChevronDown, ChevronUp, MessageSquare, Flame, ArrowDownCircle, Check, X, Trash2 } from 'lucide-react';
+import { primeRestAudio, ensureNotificationPermission, fireRestAlert } from '@/utils/restNotify';
+import { Timer, ChevronDown, ChevronUp, MessageSquare, Flame, ArrowDownCircle, Check, X, Trash2, Bell, BellOff } from 'lucide-react';
+
+const REST_DEFAULT_KEY = 'progressionx.restSeconds';
+const REST_DEFAULT_FALLBACK = 90;
+
+function loadDefaultRest(): number {
+  if (typeof window === 'undefined') return REST_DEFAULT_FALLBACK;
+  const raw = window.localStorage.getItem(REST_DEFAULT_KEY);
+  const n = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : REST_DEFAULT_FALLBACK;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Per-set input state                                                */
@@ -110,6 +121,48 @@ export default function ActiveSession() {
 
   const nextSetRef = useRef<HTMLDivElement | null>(null);
 
+  /* ---- Rest timer state ---- */
+  const [restSeconds, setRestSeconds] = useState<number>(loadDefaultRest);
+  const [restStartedAt, setRestStartedAt] = useState<Record<string, number>>({});
+  const [now, setNow] = useState<number>(() => Date.now());
+  const [notifGranted, setNotifGranted] = useState<boolean>(
+    typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted',
+  );
+  const firedRef = useRef<Set<string>>(new Set());
+
+  // Tick every second only while at least one rest timer is active.
+  useEffect(() => {
+    const ids = Object.keys(restStartedAt);
+    if (ids.length === 0) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [restStartedAt]);
+
+  // Detect crossings and fire alert exactly once per started rest period.
+  useEffect(() => {
+    Object.entries(restStartedAt).forEach(([exId, startedAt]) => {
+      const elapsedMs = now - startedAt;
+      const key = `${exId}:${startedAt}`;
+      if (elapsedMs >= restSeconds * 1000 && !firedRef.current.has(key)) {
+        firedRef.current.add(key);
+        const ex = session?.exercises.find((e) => e.id === exId);
+        fireRestAlert(ex?.exerciseName ?? 'Set', restSeconds);
+      }
+    });
+  }, [now, restStartedAt, restSeconds, session]);
+
+  // Persist rest setting
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(REST_DEFAULT_KEY, String(restSeconds));
+  }, [restSeconds]);
+
+  const handleEnableNotifications = async () => {
+    primeRestAudio();
+    const ok = await ensureNotificationPermission();
+    setNotifGranted(ok);
+  };
+
   /* Get or initialise input for an exercise */
   const getInput = useCallback(
     (exercise: SessionExercise): SetInput => {
@@ -153,6 +206,9 @@ export default function ActiveSession() {
         onSuccess: () => {
           // Reset input, pre-fill weight from just-logged set
           setInputs((prev) => ({ ...prev, [exercise.id]: emptySet(weightKg) }));
+          // Start rest countdown for this exercise (unlocks audio on iOS)
+          primeRestAudio();
+          setRestStartedAt((prev) => ({ ...prev, [exercise.id]: Date.now() }));
         },
       },
     );
@@ -275,13 +331,44 @@ export default function ActiveSession() {
     <div className={isActive ? 'pb-44' : 'pb-8'}>
       {/* ---- Timer header ---- */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between max-w-lg mx-auto">
+        <div className="flex items-center justify-between max-w-lg mx-auto gap-3">
           <div className="flex items-center gap-2">
             <Timer className="w-5 h-5 text-primary" />
             <span className="text-2xl font-mono font-bold tracking-wider">
               {formatDuration(elapsed)}
             </span>
           </div>
+          {isActive && (
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1 text-[11px] text-text-muted">
+                Rest
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={10}
+                  step={5}
+                  value={restSeconds}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (Number.isFinite(v) && v > 0) setRestSeconds(v);
+                  }}
+                  className="w-14 h-8 rounded-md bg-surface border border-border text-center text-text text-sm font-semibold focus:border-primary outline-none"
+                />
+                <span>s</span>
+              </label>
+              <button
+                onClick={handleEnableNotifications}
+                title={notifGranted ? 'Notifications enabled' : 'Enable rest notifications'}
+                className="h-8 w-8 flex items-center justify-center rounded-md bg-surface border border-border active:bg-surface-light/40"
+              >
+                {notifGranted ? (
+                  <Bell className="w-4 h-4 text-primary" />
+                ) : (
+                  <BellOff className="w-4 h-4 text-text-muted" />
+                )}
+              </button>
+            </div>
+          )}
           {!isActive && (
             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-surface-light text-text-muted uppercase">
               {session.status}
@@ -298,6 +385,10 @@ export default function ActiveSession() {
         {session.exercises.map((exercise) => {
           const isCollapsed = collapsed[exercise.id] ?? false;
           const inp = getInput(exercise);
+          const restStarted = restStartedAt[exercise.id];
+          const restRemaining =
+            restStarted != null ? Math.max(0, restSeconds - Math.floor((now - restStarted) / 1000)) : null;
+          const restOverdue = restStarted != null && restRemaining === 0;
 
           return (
             <div
@@ -322,6 +413,17 @@ export default function ActiveSession() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-text-muted shrink-0 ml-2">
+                  {restRemaining != null && (
+                    <span
+                      className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full tabular-nums ${
+                        restOverdue
+                          ? 'bg-danger/20 text-danger animate-pulse'
+                          : 'bg-primary/15 text-primary'
+                      }`}
+                    >
+                      {restOverdue ? 'GO!' : `${restRemaining}s`}
+                    </span>
+                  )}
                   <span className="text-sm">{exercise.sets.length} sets</span>
                   {isCollapsed ? (
                     <ChevronDown className="w-5 h-5" />
