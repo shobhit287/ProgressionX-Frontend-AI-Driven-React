@@ -68,7 +68,7 @@ export default function ExportPage() {
 
       <div className="space-y-4 rounded-2xl border border-[#334155] bg-[#1e293b] p-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-semibold uppercase tracking-wide text-[#94a3b8] mb-1.5">
               Start date <span className="text-rose-400">*</span>
             </label>
@@ -77,10 +77,10 @@ export default function ExportPage() {
               value={startDate}
               max={endDate || undefined}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full h-11 rounded-xl bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] focus:border-[#6366f1] outline-none"
+              className="block w-full min-w-0 h-11 rounded-xl bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] focus:border-[#6366f1] outline-none appearance-none"
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-semibold uppercase tracking-wide text-[#94a3b8] mb-1.5">
               End date <span className="text-rose-400">*</span>
             </label>
@@ -90,7 +90,7 @@ export default function ExportPage() {
               min={startDate || undefined}
               max={today}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full h-11 rounded-xl bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] focus:border-[#6366f1] outline-none"
+              className="block w-full min-w-0 h-11 rounded-xl bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] focus:border-[#6366f1] outline-none appearance-none"
             />
           </div>
         </div>
