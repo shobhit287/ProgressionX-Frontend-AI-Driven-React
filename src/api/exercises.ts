@@ -107,6 +107,8 @@ export function useReorderExercises() {
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: exerciseKeys.bySplit(variables.splitId) });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
     },
   });
 }

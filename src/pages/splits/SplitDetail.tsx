@@ -7,6 +7,7 @@ import {
   useCreateExercise,
   useUpdateExercise,
   useDeleteExercise,
+  useReorderExercises,
 } from '@/api/exercises';
 import { useCustomizeSplit } from '@/api/ai';
 import { useReplaceSingleSplit } from '@/api/splits';
@@ -53,7 +54,11 @@ export default function SplitDetail() {
   const createExercise = useCreateExercise();
   const updateExercise = useUpdateExercise();
   const deleteExercise = useDeleteExercise();
+  const reorderExercises = useReorderExercises();
   const updateSplit = useUpdateSplit();
+
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -142,6 +147,34 @@ export default function SplitDetail() {
         await createExercise.mutateAsync(payload);
       }
       setModalOpen(false);
+    } catch {
+      // handled by query
+    }
+  }
+
+  async function handleDrop(targetId: string) {
+    if (!id || !draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+    const ordered = [...(exercises || [])].sort(
+      (a, b) => a.displayOrder - b.displayOrder,
+    );
+    const fromIdx = ordered.findIndex((e) => e.id === draggedId);
+    const toIdx = ordered.findIndex((e) => e.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+    const [moved] = ordered.splice(fromIdx, 1);
+    ordered.splice(toIdx, 0, moved);
+    const orderedIds = ordered.map((e) => e.id);
+    setDraggedId(null);
+    setDragOverId(null);
+    try {
+      await reorderExercises.mutateAsync({ splitId: id, orderedIds });
     } catch {
       // handled by query
     }
@@ -270,10 +303,39 @@ export default function SplitDetail() {
             </div>
           ) : (
             sortedExercises.map((ex) => (
-              <Card key={ex.id} className="p-4">
+              <div
+                key={ex.id}
+                draggable
+                onDragStart={(e) => {
+                  setDraggedId(ex.id);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (dragOverId !== ex.id) setDragOverId(ex.id);
+                }}
+                onDragLeave={() => {
+                  if (dragOverId === ex.id) setDragOverId(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  void handleDrop(ex.id);
+                }}
+                onDragEnd={() => {
+                  setDraggedId(null);
+                  setDragOverId(null);
+                }}
+                className={`transition-opacity ${draggedId === ex.id ? 'opacity-40' : ''} ${
+                  dragOverId === ex.id && draggedId !== ex.id
+                    ? 'ring-2 ring-[#6366f1] rounded-xl'
+                    : ''
+                }`}
+              >
+              <Card className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <GripVertical className="w-5 h-5 text-[#334155] mt-0.5 flex-shrink-0" />
+                    <GripVertical className="w-5 h-5 text-[#334155] mt-0.5 flex-shrink-0 cursor-grab" />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-[#f1f5f9] font-medium">{ex.name}</p>
@@ -307,6 +369,7 @@ export default function SplitDetail() {
                   </div>
                 </div>
               </Card>
+              </div>
             ))
           )}
         </div>
