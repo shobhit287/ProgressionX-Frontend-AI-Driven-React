@@ -92,9 +92,9 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#f1f5f9]">
+    <div className="min-h-screen bg-[#0f172a] text-[#f1f5f9] overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-[#334155] bg-[#1e293b]/80 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-[#334155] bg-[#1e293b]/80 backdrop-blur-md pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold tracking-tight">
