@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, UserCircle, HelpCircle } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
+import InstallBanner from '@/components/InstallBanner';
 import { useAuthStore } from '@/store/auth';
 import HelpModal from '@/components/HelpModal';
 
@@ -50,6 +51,8 @@ export default function Layout() {
           </div>
         </header>
       )}
+
+      {!isSessionPage && <InstallBanner />}
 
       <main className={`mx-auto max-w-lg pt-4 ${isSessionPage ? 'px-0 pb-0' : 'px-4 pb-24'}`}>
         <Outlet />
