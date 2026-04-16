@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLogin } from '@/api/auth';
+import { useAuthStore } from '@/store/auth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
@@ -18,7 +19,12 @@ export default function Login() {
 
     try {
       await login.mutateAsync({ email, password });
-      navigate('/', { replace: true });
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'superadmin') {
+        navigate('/superadmin', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||

@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, keepPreviousData } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import AuthGuard from '@/components/AuthGuard';
+import AdminGuard from '@/components/AdminGuard';
 import { lazy, Suspense } from 'react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
@@ -19,6 +20,7 @@ const AskPage = lazy(() => import('@/pages/ask/AskPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const DietPage = lazy(() => import('@/pages/diet/DietPage'));
 const ExportPage = lazy(() => import('@/pages/export/ExportPage'));
+const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboard'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +50,12 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
 
+            {/* Superadmin routes */}
+            <Route element={<AdminGuard />}>
+              <Route path="/superadmin" element={<AdminDashboardPage />} />
+            </Route>
+
+            {/* Normal user routes */}
             <Route element={<AuthGuard />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<DashboardPage />} />

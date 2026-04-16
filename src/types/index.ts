@@ -2,6 +2,8 @@
 export type TrainingType = 'hypertrophy' | 'strength' | 'powerbuilding' | 'endurance' | 'general_fitness';
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 
+export type UserRole = 'user' | 'superadmin';
+
 export interface User {
   id: string;
   firstName: string;
@@ -16,6 +18,7 @@ export interface User {
   activityLevel?: string;
   mobileNumber?: string;
   email: string;
+  role: UserRole;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -218,4 +221,88 @@ export interface PlannedExercise {
 export interface SessionPlanResponse {
   exercises: PlannedExercise[];
   note: string;
+}
+
+// Admin
+export interface AdminDashboard {
+  totalUsers: number;
+  activeUsers7d: number;
+  activeUsers30d: number;
+  newUsersToday: number;
+  newUsersThisWeek: number;
+  newUsersThisMonth: number;
+  totalSessions: number;
+  sessionsToday: number;
+  avgSessionDuration: number | null;
+  totalLlmCallsToday: number;
+  totalLlmCallsMonth: number;
+  totalTokensMonth: number;
+}
+
+export interface ActiveHourBucket {
+  hour: number;
+  dayOfWeek: number;
+  count: number;
+}
+
+export interface ActiveHoursData {
+  buckets: ActiveHourBucket[];
+  peakHour: number;
+  peakDay: number;
+}
+
+export interface LlmEndpointBreakdown {
+  endpoint: string;
+  count: number;
+  avgDurationMs: number | null;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+}
+
+export interface LlmDailyCount {
+  date: string;
+  count: number;
+  tokens: number;
+}
+
+export interface LlmTopUser {
+  userId: string;
+  email: string;
+  name: string;
+  callCount: number;
+}
+
+export interface LlmUsageData {
+  totalCalls: number;
+  totalErrors: number;
+  errorRate: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  avgDurationMs: number | null;
+  byEndpoint: LlmEndpointBreakdown[];
+  daily: LlmDailyCount[];
+  topUsers: LlmTopUser[];
+}
+
+export interface AdminUserItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  goal: string;
+  trainingType: string;
+  experienceLevel: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  lastActive: string | null;
+  totalSessions: number;
+  totalLlmCalls: number;
+}
+
+export interface AdminUsersData {
+  items: AdminUserItem[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
