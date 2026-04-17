@@ -45,7 +45,11 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (status === 401 && !originalRequest._retry) {
+    const requestUrl: string = originalRequest?.url ?? '';
+    const isAuthEndpoint =
+      requestUrl.includes('/auth/login') || requestUrl.includes('/auth/refresh');
+
+    if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       const refreshToken = useAuthStore.getState().refreshToken;
 
       if (!refreshToken) {

@@ -49,28 +49,32 @@ export default function ExerciseAnalytics({ exerciseName }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-[#94a3b8] mb-1 block">From</label>
-          <input
-            type="date"
-            value={dateFrom}
-            max={dateTo || new Date().toISOString().slice(0, 10)}
-            onChange={(e) => setDateFrom(e.target.value)}
-            style={{ colorScheme: 'dark' }}
-            className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none ${dateFrom ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
-            placeholder="Select start date"
-          />
+          <div className="relative">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
+            <input
+              type="date"
+              value={dateFrom}
+              max={dateTo || new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className={`w-full h-11 rounded-lg bg-[#1e293b] border border-[#334155] pl-9 pr-3 text-sm focus:border-[#6366f1] outline-none appearance-none [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-75 ${dateFrom ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
+              placeholder="Select start date"
+            />
+          </div>
         </div>
         <div>
           <label className="text-xs text-[#94a3b8] mb-1 block">To</label>
-          <input
-            type="date"
-            value={dateTo}
-            min={dateFrom || undefined}
-            max={new Date().toISOString().slice(0, 10)}
-            onChange={(e) => setDateTo(e.target.value)}
-            style={{ colorScheme: 'dark' }}
-            className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none ${dateTo ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
-            placeholder="Select end date"
-          />
+          <div className="relative">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
+            <input
+              type="date"
+              value={dateTo}
+              min={dateFrom || undefined}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDateTo(e.target.value)}
+              className={`w-full h-11 rounded-lg bg-[#1e293b] border border-[#334155] pl-9 pr-3 text-sm focus:border-[#6366f1] outline-none appearance-none [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-75 ${dateTo ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
+              placeholder="Select end date"
+            />
+          </div>
         </div>
       </div>
 
