@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, ArrowLeft, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowLeft, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { useSplit, useUpdateSplit } from '@/api/splits';
 import {
   useSplitExercises,
@@ -180,6 +180,21 @@ export default function SplitDetail() {
     }
   }
 
+  async function handleMove(exerciseId: string, direction: 'up' | 'down') {
+    if (!id || !exercises) return;
+    const ordered = [...exercises].sort((a, b) => a.displayOrder - b.displayOrder);
+    const idx = ordered.findIndex((e) => e.id === exerciseId);
+    if (idx === -1) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= ordered.length) return;
+    [ordered[idx], ordered[swapIdx]] = [ordered[swapIdx], ordered[idx]];
+    try {
+      await reorderExercises.mutateAsync({ splitId: id, orderedIds: ordered.map((e) => e.id) });
+    } catch {
+      // handled by query
+    }
+  }
+
   async function handleDelete(exerciseId: string) {
     try {
       await deleteExercise.mutateAsync({ splitId: id!, id: exerciseId });
@@ -335,7 +350,24 @@ export default function SplitDetail() {
               <Card className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <GripVertical className="w-5 h-5 text-[#334155] mt-0.5 flex-shrink-0 cursor-grab" />
+                    {/* Desktop: drag handle, Mobile: up/down buttons */}
+                    <GripVertical className="w-5 h-5 text-[#334155] mt-0.5 flex-shrink-0 cursor-grab hidden sm:block" />
+                    <div className="flex flex-col gap-0.5 flex-shrink-0 sm:hidden">
+                      <button
+                        onClick={() => handleMove(ex.id, 'up')}
+                        disabled={ex === sortedExercises[0]}
+                        className="p-0.5 rounded hover:bg-[#0f172a] transition-colors disabled:opacity-20"
+                      >
+                        <ChevronUp className="w-4 h-4 text-[#94a3b8]" />
+                      </button>
+                      <button
+                        onClick={() => handleMove(ex.id, 'down')}
+                        disabled={ex === sortedExercises[sortedExercises.length - 1]}
+                        className="p-0.5 rounded hover:bg-[#0f172a] transition-colors disabled:opacity-20"
+                      >
+                        <ChevronDown className="w-4 h-4 text-[#94a3b8]" />
+                      </button>
+                    </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-[#f1f5f9] font-medium">{ex.name}</p>

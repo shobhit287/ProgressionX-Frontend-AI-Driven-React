@@ -43,6 +43,8 @@ export function useCreateExercise() {
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: exerciseKeys.bySplit(variables.splitId) });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
     },
   });
 }
@@ -64,6 +66,8 @@ export function useUpdateExercise() {
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: exerciseKeys.bySplit(variables.splitId) });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
     },
   });
 }
