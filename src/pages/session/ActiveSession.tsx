@@ -7,7 +7,15 @@ import AiSessionPlan from '@/components/AiSessionPlan';
 import type { PreviousSetData } from '@/api/sets';
 import type { SessionExercise, ExerciseSet } from '@/types';
 import { formatDuration, formatWeight } from '@/utils/format';
-import { primeRestAudio, ensureNotificationPermission, fireRestAlert } from '@/utils/restNotify';
+import {
+  primeRestAudio,
+  ensureNotificationPermission,
+  scheduleRestAlert,
+  requestScreenWakeLock,
+  releaseScreenWakeLock,
+  resumeAudioIfSuspended,
+  type RestAlertHandle,
+} from '@/utils/restNotify';
 import { Timer, ChevronDown, ChevronUp, MessageSquare, Flame, ArrowDownCircle, Check, X, Trash2, Bell, BellOff } from 'lucide-react';
 
 const REST_DEFAULT_KEY = 'progressionx.restSeconds';
@@ -128,7 +136,12 @@ export default function ActiveSession() {
   const [notifGranted, setNotifGranted] = useState<boolean>(
     typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted',
   );
-  const firedRef = useRef<Set<string>>(new Set());
+  // Scheduled alert handles per exercise — pre-scheduled at rest start so the
+  // beep fires even if the browser throttles JS while backgrounded.
+  const alertHandlesRef = useRef<Record<string, RestAlertHandle>>({});
+  // The `startedAt` each alert was scheduled against, so we can detect when a
+  // rest restarts (same exId, new startedAt) and reschedule.
+  const alertStartedAtRef = useRef<Record<string, number>>({});
 
   // Tick every second only while at least one rest timer is active.
   useEffect(() => {
@@ -138,18 +151,61 @@ export default function ActiveSession() {
     return () => clearInterval(t);
   }, [restStartedAt]);
 
-  // Detect crossings and fire alert exactly once per started rest period.
+  // Schedule a rest alert whenever a rest timer starts or restarts.
   useEffect(() => {
     Object.entries(restStartedAt).forEach(([exId, startedAt]) => {
-      const elapsedMs = now - startedAt;
-      const key = `${exId}:${startedAt}`;
-      if (elapsedMs >= restSeconds * 1000 && !firedRef.current.has(key)) {
-        firedRef.current.add(key);
-        const ex = session?.exercises.find((e) => e.id === exId);
-        fireRestAlert(ex?.exerciseName ?? 'Set', restSeconds);
+      if (alertStartedAtRef.current[exId] === startedAt) return;
+      // Cancel any prior scheduled alert for this exercise.
+      alertHandlesRef.current[exId]?.cancel();
+      const ex = session?.exercises.find((e) => e.id === exId);
+      const delay = Math.max(0, restSeconds - (Date.now() - startedAt) / 1000);
+      alertHandlesRef.current[exId] = scheduleRestAlert(delay, ex?.exerciseName ?? 'Set');
+      alertStartedAtRef.current[exId] = startedAt;
+    });
+    // Drop tracking for removed rest timers.
+    Object.keys(alertStartedAtRef.current).forEach((exId) => {
+      if (!(exId in restStartedAt)) {
+        alertHandlesRef.current[exId]?.cancel();
+        delete alertHandlesRef.current[exId];
+        delete alertStartedAtRef.current[exId];
       }
     });
-  }, [now, restStartedAt, restSeconds, session]);
+  }, [restStartedAt, restSeconds, session]);
+
+  // Cancel all pending alerts on unmount.
+  useEffect(() => {
+    return () => {
+      Object.values(alertHandlesRef.current).forEach((h) => h.cancel());
+      alertHandlesRef.current = {};
+      alertStartedAtRef.current = {};
+    };
+  }, []);
+
+  // Keep the screen awake while any rest timer is running so the browser
+  // doesn't suspend audio / vibration / JS timers.
+  useEffect(() => {
+    const anyActive = Object.keys(restStartedAt).length > 0;
+    if (!anyActive) {
+      releaseScreenWakeLock();
+      return;
+    }
+    void requestScreenWakeLock();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        resumeAudioIfSuspended();
+        void requestScreenWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [restStartedAt]);
+
+  // Release wake lock on unmount.
+  useEffect(() => {
+    return () => releaseScreenWakeLock();
+  }, []);
 
   // Persist rest setting
   useEffect(() => {
