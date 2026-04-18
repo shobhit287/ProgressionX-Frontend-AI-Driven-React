@@ -58,6 +58,18 @@ export function useAnalyzeWeight() {
   });
 }
 
+export function useAnalyzeSplit() {
+  return useMutation({
+    mutationFn: async (payload: { question: string }) => {
+      const { data } = await apiClient.post<AIAnalysisResponse>(
+        '/ai/analyze-split',
+        payload,
+      );
+      return data;
+    },
+  });
+}
+
 export function useFitnessChat() {
   return useMutation({
     mutationFn: async (payload: {

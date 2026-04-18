@@ -1,11 +1,16 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useAnalyzeSessions, useAnalyzeExercise, useAnalyzeWeight } from '@/api/ai';
+import {
+  useAnalyzeSessions,
+  useAnalyzeExercise,
+  useAnalyzeWeight,
+  useAnalyzeSplit,
+} from '@/api/ai';
 import { useExerciseNames } from '@/api/exercises';
 import type { AIAnalysisResponse } from '@/types';
 import AnalysisResult from '@/components/AnalysisResult';
-import { Brain, Dumbbell, Scale, Activity } from 'lucide-react';
+import { Brain, Dumbbell, Scale, Activity, CalendarDays } from 'lucide-react';
 
-type AnalysisType = 'sessions' | 'exercise' | 'weight' | null;
+type AnalysisType = 'sessions' | 'exercise' | 'weight' | 'split' | null;
 
 interface FormState {
   dateFrom: string;
@@ -37,9 +42,13 @@ export default function AIPage() {
   const analyzeSessions = useAnalyzeSessions();
   const analyzeExercise = useAnalyzeExercise();
   const analyzeWeight = useAnalyzeWeight();
+  const analyzeSplit = useAnalyzeSplit();
 
   const isPending =
-    analyzeSessions.isPending || analyzeExercise.isPending || analyzeWeight.isPending;
+    analyzeSessions.isPending ||
+    analyzeExercise.isPending ||
+    analyzeWeight.isPending ||
+    analyzeSplit.isPending;
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -97,15 +106,21 @@ export default function AIPage() {
     };
 
     if (activeType === 'sessions') {
-      analyzeSessions.mutate(params, { onSuccess, onError });
+      analyzeSessions.mutate({ ...params, question: form.question || undefined }, { onSuccess, onError });
     } else if (activeType === 'exercise') {
       if (!form.exerciseName.trim()) return;
       analyzeExercise.mutate(
-        { exerciseName: form.exerciseName.trim(), ...params },
+        { exerciseName: form.exerciseName.trim(), question: form.question || undefined, ...params },
         { onSuccess, onError },
       );
     } else if (activeType === 'weight') {
-      analyzeWeight.mutate(params, { onSuccess, onError });
+      analyzeWeight.mutate({ ...params, question: form.question || undefined }, { onSuccess, onError });
+    } else if (activeType === 'split') {
+      if (!form.question.trim()) {
+        setErrorMsg('Please enter a question about your split.');
+        return;
+      }
+      analyzeSplit.mutate({ question: form.question.trim() }, { onSuccess, onError });
     }
   };
 
@@ -157,6 +172,28 @@ export default function AIPage() {
                 <h3 className="text-base font-bold">Analyze Exercise</h3>
                 <p className="text-xs text-[#94a3b8]">
                   Progression rate, form cues, plateau detection
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Split analysis */}
+          <button
+            onClick={() => handleOpen('split')}
+            className={`w-full rounded-2xl p-4 text-left transition-colors border ${
+              activeType === 'split'
+                ? 'bg-[#a855f7]/10 border-[#a855f7]'
+                : 'bg-[#1e293b] border-transparent hover:border-[#334155]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#a855f7]/20 flex items-center justify-center shrink-0">
+                <CalendarDays className="w-5 h-5 text-[#a855f7]" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold">Analyze Split</h3>
+                <p className="text-xs text-[#94a3b8]">
+                  Ask about recovery, volume, muscle balance in your weekly plan
                 </p>
               </div>
             </div>
@@ -227,40 +264,46 @@ export default function AIPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-[#94a3b8] mb-1 block">From</label>
-                <input
-                  type="date"
-                  value={form.dateFrom}
-                  max={form.dateTo || today}
-                  onChange={(e) => updateForm({ dateFrom: e.target.value })}
-                  style={{ colorScheme: 'dark' }}
-                  className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none appearance-none ${form.dateFrom ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
-                  placeholder="Select start date"
-                />
+            {activeType !== 'split' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-[#94a3b8] mb-1 block">From</label>
+                  <input
+                    type="date"
+                    value={form.dateFrom}
+                    max={form.dateTo || today}
+                    onChange={(e) => updateForm({ dateFrom: e.target.value })}
+                    style={{ colorScheme: 'dark' }}
+                    className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none appearance-none ${form.dateFrom ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
+                    placeholder="Select start date"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-[#94a3b8] mb-1 block">To</label>
+                  <input
+                    type="date"
+                    value={form.dateTo}
+                    min={form.dateFrom || undefined}
+                    max={today}
+                    onChange={(e) => updateForm({ dateTo: e.target.value })}
+                    style={{ colorScheme: 'dark' }}
+                    className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none appearance-none ${form.dateTo ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
+                    placeholder="Select end date"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-xs text-[#94a3b8] mb-1 block">To</label>
-                <input
-                  type="date"
-                  value={form.dateTo}
-                  min={form.dateFrom || undefined}
-                  max={today}
-                  onChange={(e) => updateForm({ dateTo: e.target.value })}
-                  style={{ colorScheme: 'dark' }}
-                  className={`w-full h-11 rounded-lg bg-[#0f172a] border border-[#334155] px-3 text-sm focus:border-[#6366f1] outline-none appearance-none ${form.dateTo ? 'text-[#f1f5f9]' : 'text-[#475569]'}`}
-                  placeholder="Select end date"
-                />
-              </div>
-            </div>
+            )}
 
             <div>
               <label className="text-xs text-[#94a3b8] mb-1 block">
-                Question (optional)
+                {activeType === 'split' ? 'Question *' : 'Question (optional)'}
               </label>
               <textarea
-                placeholder="Ask something specific..."
+                placeholder={
+                  activeType === 'split'
+                    ? 'e.g. "Is my current split good for recovery?" or "Is my split lacking calves volume?"'
+                    : 'Ask something specific...'
+                }
                 value={form.question}
                 onChange={(e) => updateForm({ question: e.target.value })}
                 rows={3}
