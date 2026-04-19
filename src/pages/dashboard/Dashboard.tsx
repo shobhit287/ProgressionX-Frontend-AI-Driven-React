@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, ArrowRight, Flame, Calendar, Dumbbell, Trophy, CheckCircle } from 'lucide-react';
+import { Play, ArrowRight, Flame, Calendar, Dumbbell, Trophy, CheckCircle, History } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
 import { useTodaySplit } from '@/api/splits';
 import { useActiveSession, useStartSession, useSessions } from '@/api/sessions';
@@ -149,6 +149,23 @@ export default function Dashboard() {
           </Card>
         </div>
       ) : null}
+
+      {/* Workout history shortcut */}
+      <button
+        onClick={() => navigate('/sessions')}
+        className="w-full flex items-center justify-between rounded-2xl bg-surface border border-border px-4 py-3 active:scale-[0.99] transition-transform"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
+            <History className="w-4 h-4 text-primary" />
+          </div>
+          <div className="text-left">
+            <p className="text-text text-sm font-semibold">Workout History</p>
+            <p className="text-text-muted text-xs">Look up past sessions by date or split</p>
+          </div>
+        </div>
+        <ArrowRight className="w-4 h-4 text-text-muted" />
+      </button>
 
       {/* Recent PRs */}
       {summaryLoading ? (
