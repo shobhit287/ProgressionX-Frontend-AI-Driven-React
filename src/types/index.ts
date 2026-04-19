@@ -120,6 +120,12 @@ export interface WorkoutSessionDetail extends WorkoutSession {
   exercises: SessionExercise[];
 }
 
+export interface SessionDateItem {
+  id: string;
+  startedAt: string;
+  status: 'in_progress' | 'completed' | 'abandoned';
+}
+
 // Paginated
 export interface PaginatedResponse<T> {
   items: T[];

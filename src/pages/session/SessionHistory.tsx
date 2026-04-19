@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useSession, useSessions } from '@/api/sessions';
+import { useSession, useSessions, useSessionDatesBySplit } from '@/api/sessions';
 import { useSplits } from '@/api/splits';
 import type { WorkoutSessionDetail, WorkoutSplit } from '@/types';
 import { capitalize, formatDate, formatDuration, formatWeight } from '@/utils/format';
@@ -50,10 +50,8 @@ export default function SessionHistory() {
       : null,
   );
 
-  const { data: splitSessions, isLoading: splitLoading } = useSessions(
-    mode === 'split' && selectedSplitId
-      ? { splitId: selectedSplitId, pageSize: 100 }
-      : null,
+  const { data: splitDates, isLoading: splitLoading } = useSessionDatesBySplit(
+    mode === 'split' ? selectedSplitId : '',
   );
 
   const dateSessionList = dateSessions?.items ?? [];
@@ -66,13 +64,13 @@ export default function SessionHistory() {
   const { data: sessionDetail, isLoading: detailLoading } = useSession(detailId);
 
   const splitDateOptions = useMemo(() => {
-    if (!splitSessions?.items) return [];
-    return splitSessions.items.map((s) => ({
+    if (!splitDates) return [];
+    return splitDates.map((s) => ({
       id: s.id,
       label: formatDate(s.startedAt),
       status: s.status,
     }));
-  }, [splitSessions]);
+  }, [splitDates]);
 
   const switchMode = (next: Mode) => {
     setMode(next);

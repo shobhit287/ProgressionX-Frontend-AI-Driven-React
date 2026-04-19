@@ -1,11 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/api/client';
-import type { PaginatedResponse, WorkoutSession, WorkoutSessionDetail } from '@/types';
+import type {
+  PaginatedResponse,
+  SessionDateItem,
+  WorkoutSession,
+  WorkoutSessionDetail,
+} from '@/types';
 
 export const sessionKeys = {
   all: ['sessions'] as const,
   active: ['sessions', 'active'] as const,
   detail: (id: string) => ['sessions', id] as const,
+  datesBySplit: (splitId: string) => ['sessions', 'dates', splitId] as const,
 };
 
 interface SessionFilters {
@@ -39,6 +45,19 @@ export function useSessions(filters?: SessionFilters | null) {
       return data;
     },
     enabled: filters !== undefined && filters !== null,
+  });
+}
+
+export function useSessionDatesBySplit(splitId: string, limit = 500) {
+  return useQuery({
+    queryKey: sessionKeys.datesBySplit(splitId),
+    queryFn: async () => {
+      const { data } = await apiClient.get<SessionDateItem[]>('/sessions/dates', {
+        params: { splitId, limit },
+      });
+      return data;
+    },
+    enabled: !!splitId,
   });
 }
 
