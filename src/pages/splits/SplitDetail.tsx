@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, ArrowLeft, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowLeft, GripVertical, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { useSplit, useUpdateSplit } from '@/api/splits';
 import {
   useSplitExercises,
@@ -26,7 +26,8 @@ const DAYS: DayEnum[] = [
 ];
 
 type ExerciseType = SplitExercise['exerciseType'];
-const EXERCISE_TYPES: ExerciseType[] = ['standard', 'superset', 'dropset', 'giant_set'];
+// Dropset is chosen per-set during the active session, not at split-creation time.
+const EXERCISE_TYPES: ExerciseType[] = ['standard', 'superset', 'giant_set'];
 
 interface ExerciseForm {
   name: string;
@@ -63,6 +64,9 @@ export default function SplitDetail() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ExerciseForm>(emptyForm);
+  // Companion exercise names for superset/giant_set creation. One entry per
+  // companion (main exercise name lives in form.name). Only used in create mode.
+  const [companions, setCompanions] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const [splitModalOpen, setSplitModalOpen] = useState(false);
@@ -110,6 +114,7 @@ export default function SplitDetail() {
   function openAddModal() {
     setEditingId(null);
     setForm(emptyForm);
+    setCompanions([]);
     setModalOpen(true);
   }
 
@@ -123,30 +128,84 @@ export default function SplitDetail() {
       notes: ex.notes || '',
       supersetGroup: ex.supersetGroup != null ? String(ex.supersetGroup) : '',
     });
+    setCompanions([]);
     setModalOpen(true);
+  }
+
+  // When the user switches type in create mode, seed companion slots so the
+  // UI matches the required pairing. Superset → 1 companion, giant_set → 2.
+  function handleTypeChange(newType: ExerciseType) {
+    updateField('exerciseType', newType);
+    if (editingId) return; // don't touch companions in edit mode
+    if (newType === 'superset' && companions.length === 0) {
+      setCompanions(['']);
+    } else if (newType === 'giant_set' && companions.length < 2) {
+      setCompanions((prev) => {
+        const needed = 2 - prev.length;
+        return [...prev, ...Array(needed).fill('')];
+      });
+    } else if (newType !== 'superset' && newType !== 'giant_set') {
+      setCompanions([]);
+    }
+  }
+
+  function nextSupersetGroup(): number {
+    const existing = (exercises || [])
+      .map((e) => e.supersetGroup ?? 0)
+      .filter((n) => n > 0);
+    return existing.length > 0 ? Math.max(...existing) + 1 : 1;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) return;
 
-    const payload = {
+    const isGroupType = form.exerciseType === 'superset' || form.exerciseType === 'giant_set';
+    const cleanedCompanions = companions.map((c) => c.trim()).filter(Boolean);
+
+    // Validate companion count for new group-type exercises
+    if (!editingId && isGroupType) {
+      if (form.exerciseType === 'superset' && cleanedCompanions.length < 1) return;
+      if (form.exerciseType === 'giant_set' && cleanedCompanions.length < 2) return;
+    }
+
+    const basePayload = {
       splitId: id!,
       name: form.name.trim(),
       defaultSets: Number(form.defaultSets) || 3,
       exerciseType: form.exerciseType,
       restSeconds: Number(form.restSeconds) || 90,
       notes: form.notes.trim() || undefined,
-      supersetGroup: form.supersetGroup ? Number(form.supersetGroup) : undefined,
     };
 
     try {
       if (editingId) {
-        await updateExercise.mutateAsync({ id: editingId, ...payload });
+        // Edit mode — single row, manual group number
+        await updateExercise.mutateAsync({
+          id: editingId,
+          ...basePayload,
+          supersetGroup: form.supersetGroup ? Number(form.supersetGroup) : undefined,
+        });
+      } else if (isGroupType) {
+        // Create mode with pairing — assign next group, POST main + companions
+        const group = nextSupersetGroup();
+        await createExercise.mutateAsync({ ...basePayload, supersetGroup: group });
+        for (const compName of cleanedCompanions) {
+          await createExercise.mutateAsync({
+            ...basePayload,
+            name: compName,
+            supersetGroup: group,
+          });
+        }
       } else {
-        await createExercise.mutateAsync(payload);
+        // Standard / dropset — single row
+        await createExercise.mutateAsync({
+          ...basePayload,
+          supersetGroup: form.supersetGroup ? Number(form.supersetGroup) : undefined,
+        });
       }
       setModalOpen(false);
+      setCompanions([]);
     } catch {
       // handled by query
     }
@@ -508,7 +567,7 @@ export default function SplitDetail() {
             </label>
             <select
               value={form.exerciseType}
-              onChange={(e) => updateField('exerciseType', e.target.value)}
+              onChange={(e) => handleTypeChange(e.target.value as ExerciseType)}
               className="w-full rounded-lg bg-[#0f172a] border border-[#334155] text-[#f1f5f9] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
             >
               {EXERCISE_TYPES.map((t) => (
@@ -519,15 +578,66 @@ export default function SplitDetail() {
             </select>
           </div>
 
-          {(form.exerciseType === 'superset' || form.exerciseType === 'giant_set') && (
-            <Input
-              label="Superset Group"
-              type="number"
-              placeholder="1"
-              value={form.supersetGroup}
-              onChange={(e) => updateField('supersetGroup', e.target.value)}
-            />
-          )}
+          {/* Create mode: paired superset/giant_set UX */}
+          {!editingId &&
+            (form.exerciseType === 'superset' || form.exerciseType === 'giant_set') && (
+              <div className="rounded-lg border border-[#334155] bg-[#0f172a] p-3 space-y-2">
+                <p className="text-xs text-[#94a3b8]">
+                  {form.exerciseType === 'superset'
+                    ? 'A superset pairs 2 exercises back-to-back.'
+                    : 'A giant set chains 3 or more exercises back-to-back.'}{' '}
+                  All will use the same sets & rest as above.
+                </p>
+                {companions.map((name, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder={`Companion exercise ${i + 1}`}
+                      value={name}
+                      onChange={(e) =>
+                        setCompanions((prev) =>
+                          prev.map((c, j) => (j === i ? e.target.value : c)),
+                        )
+                      }
+                      className="flex-1 h-10 rounded-lg bg-[#1e293b] border border-[#334155] text-[#f1f5f9] px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#6366f1]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCompanions((prev) => prev.filter((_, j) => j !== i))
+                      }
+                      disabled={
+                        (form.exerciseType === 'superset' && companions.length <= 1) ||
+                        (form.exerciseType === 'giant_set' && companions.length <= 2)
+                      }
+                      className="p-2 text-[#94a3b8] hover:text-red-400 disabled:opacity-30"
+                      aria-label="Remove companion"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCompanions((prev) => [...prev, ''])}
+                  className="text-xs text-[#6366f1] hover:text-[#4f46e5] font-medium"
+                >
+                  + Add companion exercise
+                </button>
+              </div>
+            )}
+
+          {/* Edit mode: expose raw supersetGroup for manual adjustment */}
+          {editingId &&
+            (form.exerciseType === 'superset' || form.exerciseType === 'giant_set') && (
+              <Input
+                label="Superset Group"
+                type="number"
+                placeholder="1"
+                value={form.supersetGroup}
+                onChange={(e) => updateField('supersetGroup', e.target.value)}
+              />
+            )}
 
           <div>
             <label className="block text-sm font-medium text-[#f1f5f9] mb-1">

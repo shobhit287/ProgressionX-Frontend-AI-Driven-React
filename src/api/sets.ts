@@ -44,6 +44,7 @@ export function useAddSet() {
       isWarmup?: boolean;
       isDropset?: boolean;
       description?: string;
+      parentSetId?: string;
     }) => {
       const { data } = await apiClient.post<ExerciseSet>(
         `/sessions/${sessionId}/exercises/${exerciseId}/sets`,

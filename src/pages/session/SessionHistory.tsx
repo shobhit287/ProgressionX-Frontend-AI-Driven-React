@@ -339,35 +339,44 @@ function SessionDetailCard({
                 </div>
                 {[...ex.sets]
                   .sort((a, b) => a.setNumber - b.setNumber)
-                  .map((s) => (
-                    <div key={s.id} className="mb-1">
-                      <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center py-1.5 px-1">
-                        <span className="text-sm text-text-muted text-center">
-                          {s.setNumber}
-                          {s.isWarmup && (
-                            <Flame className="w-3 h-3 text-warning inline ml-0.5" />
-                          )}
-                        </span>
-                        <span className="text-base font-semibold text-center">
-                          {formatWeight(s.weightKg)}
-                        </span>
-                        <span className="text-base font-semibold text-center">
-                          {s.reps}
-                          {s.isDropset && (
-                            <ArrowDownCircle className="w-3.5 h-3.5 text-primary inline ml-1" />
-                          )}
-                        </span>
-                        <span className="text-sm text-text-muted text-center">
-                          {s.repsInReserve != null ? s.repsInReserve : '-'}
-                        </span>
+                  .map((s) => {
+                    const isDrop = !!s.parentSetId;
+                    return (
+                      <div
+                        key={s.id}
+                        className={`mb-1 ${
+                          isDrop ? 'ml-6 border-l-2 border-primary/40 pl-1' : ''
+                        }`}
+                      >
+                        <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center py-1.5 px-1">
+                          <span className="text-sm text-text-muted text-center">
+                            {isDrop ? (
+                              <ArrowDownCircle className="w-3.5 h-3.5 text-primary inline" />
+                            ) : (
+                              s.setNumber
+                            )}
+                            {s.isWarmup && (
+                              <Flame className="w-3 h-3 text-warning inline ml-0.5" />
+                            )}
+                          </span>
+                          <span className="text-base font-semibold text-center">
+                            {formatWeight(s.weightKg)}
+                          </span>
+                          <span className="text-base font-semibold text-center">
+                            {s.reps}
+                          </span>
+                          <span className="text-sm text-text-muted text-center">
+                            {s.repsInReserve != null ? s.repsInReserve : '-'}
+                          </span>
+                        </div>
+                        {s.description && (
+                          <p className="text-xs text-text-muted italic px-1 -mt-0.5 mb-1 break-words">
+                            &ldquo;{s.description}&rdquo;
+                          </p>
+                        )}
                       </div>
-                      {s.description && (
-                        <p className="text-xs text-text-muted italic px-1 -mt-0.5 mb-1 break-words">
-                          &ldquo;{s.description}&rdquo;
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
               </>
             )}
           </div>

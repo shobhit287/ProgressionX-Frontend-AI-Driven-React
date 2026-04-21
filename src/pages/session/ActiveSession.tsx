@@ -117,6 +117,12 @@ export default function ActiveSession() {
   const [inputs, setInputs] = useState<Record<string, SetInput>>({});
   // Track which existing set is being edited (setId -> true)
   const [editing, setEditing] = useState<Record<string, SetInput>>({});
+  // Dropset capture flow — active when user checks "Dropset" and logs a top
+  // set. Remembers the top set id so subsequent drops are linked to it.
+  const [dropFlow, setDropFlow] = useState<
+    Record<string, { parentSetId: string; lastWeight: number } | null>
+  >({});
+  const [dropInputs, setDropInputs] = useState<Record<string, SetInput>>({});
   // Expand/collapse exercises
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   // Notes toggle per exercise
@@ -240,9 +246,54 @@ export default function ActiveSession() {
   const getInputById = (exId: string, state: Record<string, SetInput>) =>
     state[exId] ?? emptySet();
 
-  /* ---- Log a new set ---- */
+  /* ---- Log a new set ----
+     If "Dropset" was checked, we save the TOP set without the dropset flag
+     (it's the heavy set, not a drop), then open the drop-capture flow so
+     the user can record each drop's weight/reps/RIR with the parent link. */
   const handleLogSet = (exercise: SessionExercise) => {
     const inp = getInput(exercise);
+    const weightKg = parseFloat(inp.weightKg);
+    const reps = parseInt(inp.reps, 10);
+    if (isNaN(weightKg) || isNaN(reps) || reps <= 0) return;
+
+    const wasDropset = inp.isDropset;
+
+    addSet.mutate(
+      {
+        sessionId: id!,
+        exerciseId: exercise.id,
+        weightKg,
+        reps,
+        repsInReserve: inp.rir !== '' ? parseInt(inp.rir, 10) : undefined,
+        isWarmup: inp.isWarmup,
+        // The top set is NOT a drop itself — drops are separate rows.
+        isDropset: false,
+        description: inp.description || undefined,
+      },
+      {
+        onSuccess: (saved) => {
+          setInputs((prev) => ({ ...prev, [exercise.id]: emptySet(weightKg) }));
+          primeRestAudio();
+          setRestStartedAt((prev) => ({ ...prev, [exercise.id]: Date.now() }));
+
+          if (wasDropset && saved?.id) {
+            const dropW = Math.max(0.5, Math.round(weightKg * 0.7 * 2) / 2);
+            setDropFlow((prev) => ({
+              ...prev,
+              [exercise.id]: { parentSetId: saved.id, lastWeight: weightKg },
+            }));
+            setDropInputs((prev) => ({ ...prev, [exercise.id]: emptySet(dropW) }));
+          }
+        },
+      },
+    );
+  };
+
+  /* ---- Log a drop under the current dropset chain ---- */
+  const handleLogDrop = (exercise: SessionExercise) => {
+    const flow = dropFlow[exercise.id];
+    if (!flow) return;
+    const inp = dropInputs[exercise.id] ?? emptySet();
     const weightKg = parseFloat(inp.weightKg);
     const reps = parseInt(inp.reps, 10);
     if (isNaN(weightKg) || isNaN(reps) || reps <= 0) return;
@@ -254,20 +305,38 @@ export default function ActiveSession() {
         weightKg,
         reps,
         repsInReserve: inp.rir !== '' ? parseInt(inp.rir, 10) : undefined,
-        isWarmup: inp.isWarmup,
-        isDropset: inp.isDropset,
+        isWarmup: false,
+        isDropset: true,
+        parentSetId: flow.parentSetId,
         description: inp.description || undefined,
       },
       {
         onSuccess: () => {
-          // Reset input, pre-fill weight from just-logged set
-          setInputs((prev) => ({ ...prev, [exercise.id]: emptySet(weightKg) }));
-          // Start rest countdown for this exercise (unlocks audio on iOS)
-          primeRestAudio();
-          setRestStartedAt((prev) => ({ ...prev, [exercise.id]: Date.now() }));
+          const nextW = Math.max(0.5, Math.round(weightKg * 0.7 * 2) / 2);
+          setDropFlow((prev) => ({
+            ...prev,
+            [exercise.id]: { parentSetId: flow.parentSetId, lastWeight: weightKg },
+          }));
+          setDropInputs((prev) => ({ ...prev, [exercise.id]: emptySet(nextW) }));
         },
       },
     );
+  };
+
+  const finishDrops = (exerciseId: string) => {
+    setDropFlow((prev) => ({ ...prev, [exerciseId]: null }));
+    setDropInputs((prev) => {
+      const next = { ...prev };
+      delete next[exerciseId];
+      return next;
+    });
+  };
+
+  const setDropInput = (exId: string, patch: Partial<SetInput>) => {
+    setDropInputs((prev) => ({
+      ...prev,
+      [exId]: { ...(prev[exId] ?? emptySet()), ...patch },
+    }));
   };
 
   /* ---- Save edited set ---- */
@@ -597,14 +666,19 @@ export default function ActiveSession() {
                     }
 
                     const prev = getPrevSet(exercise.exerciseName, set.setNumber);
+                    const isDrop = !!set.parentSetId;
                     return (
-                      <div key={set.id} className="mb-1">
+                      <div key={set.id} className={`mb-1 ${isDrop ? 'ml-6 border-l-2 border-primary/40 pl-1' : ''}`}>
                         <button
                           className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center w-full text-left rounded-lg active:bg-surface-light/40 px-1 py-1.5 transition-colors touch-manipulation"
                           onClick={() => isActive && startEdit(set)}
                         >
                           <span className="text-sm text-text-muted text-center">
-                            {set.setNumber}
+                            {isDrop ? (
+                              <ArrowDownCircle className="w-3.5 h-3.5 text-primary inline" />
+                            ) : (
+                              set.setNumber
+                            )}
                             {set.isWarmup && (
                               <Flame className="w-3 h-3 text-warning inline ml-0.5" />
                             )}
@@ -614,15 +688,12 @@ export default function ActiveSession() {
                           </span>
                           <span className="text-base font-semibold text-center">
                             {set.reps}
-                            {set.isDropset && (
-                              <ArrowDownCircle className="w-3.5 h-3.5 text-primary inline ml-1" />
-                            )}
                           </span>
                           <span className="text-sm text-text-muted text-center">
                             {set.repsInReserve != null ? set.repsInReserve : '-'}
                           </span>
                         </button>
-                        {prev && (
+                        {prev && !isDrop && (
                           <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 px-1 -mt-0.5 mb-0.5">
                             <span />
                             <span className="text-[10px] text-surface-light text-center">prev {prev.weight_kg}</span>
@@ -750,11 +821,77 @@ export default function ActiveSession() {
                       {/* Log set button */}
                       <button
                         onClick={() => handleLogSet(exercise)}
-                        disabled={addSet.isPending}
+                        disabled={addSet.isPending || !!dropFlow[exercise.id]}
                         className="mt-3 w-full h-12 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-white text-base font-bold transition-colors disabled:opacity-50 touch-manipulation"
                       >
                         {addSet.isPending ? 'Logging...' : 'Log Set'}
                       </button>
+
+                      {/* Dropset capture — appears after a top set was logged
+                          with the dropset checkbox on. Chain drops until the
+                          user taps "Finish drops". */}
+                      {dropFlow[exercise.id] && (() => {
+                        const dropInp = dropInputs[exercise.id] ?? emptySet();
+                        return (
+                          <div className="mt-3 rounded-xl border border-primary/40 bg-primary/5 p-3 ml-6">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-primary font-semibold flex items-center gap-1">
+                                <ArrowDownCircle className="w-3.5 h-3.5" /> Drop set —
+                                enter dropped weight / reps / RIR
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => finishDrops(exercise.id)}
+                                className="text-xs text-text-muted hover:text-text underline"
+                              >
+                                Finish drops
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-[1fr_1fr_44px] gap-1.5 items-center">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                step="0.5"
+                                placeholder="kg"
+                                value={dropInp.weightKg}
+                                onChange={(e) =>
+                                  setDropInput(exercise.id, { weightKg: e.target.value })
+                                }
+                                className="h-11 min-w-0 rounded-lg bg-background border-2 border-border text-center text-text text-base font-bold placeholder:text-surface-light focus:border-primary outline-none"
+                              />
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                placeholder="reps"
+                                value={dropInp.reps}
+                                onChange={(e) =>
+                                  setDropInput(exercise.id, { reps: e.target.value })
+                                }
+                                className="h-11 min-w-0 rounded-lg bg-background border-2 border-border text-center text-text text-base font-bold placeholder:text-surface-light focus:border-primary outline-none"
+                              />
+                              <select
+                                value={dropInp.rir}
+                                onChange={(e) =>
+                                  setDropInput(exercise.id, { rir: e.target.value })
+                                }
+                                className="h-11 min-w-0 rounded-lg bg-background border-2 border-border text-center text-text text-sm focus:border-primary outline-none appearance-none"
+                              >
+                                <option value="">RIR</option>
+                                {[0, 1, 2, 3, 4, 5].map((v) => (
+                                  <option key={v} value={v}>{v}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <button
+                              onClick={() => handleLogDrop(exercise)}
+                              disabled={addSet.isPending}
+                              className="mt-2 w-full h-11 rounded-lg bg-primary/80 hover:bg-primary active:bg-primary text-white text-sm font-bold transition-colors disabled:opacity-50 touch-manipulation"
+                            >
+                              {addSet.isPending ? 'Logging drop...' : 'Log Drop'}
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </>
                   )}
                 </div>
