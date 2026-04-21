@@ -89,6 +89,7 @@ export interface ExerciseSet {
   isWarmup: boolean;
   isDropset: boolean;
   description?: string;
+  parentSetId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
