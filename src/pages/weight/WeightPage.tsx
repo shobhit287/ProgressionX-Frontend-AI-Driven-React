@@ -306,11 +306,11 @@ export default function WeightPage() {
               {logItems.map((log) => (
                 <div
                   key={log.id}
-                  className="bg-surface rounded-xl p-3 flex items-center justify-between"
+                  className="bg-surface rounded-xl p-3 flex items-start justify-between gap-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <Scale className="w-4 h-4 text-primary shrink-0" />
-                    <div>
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <Scale className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-base font-semibold">
                         {formatWeight(log.weightKg)}
                       </p>
@@ -319,11 +319,16 @@ export default function WeightPage() {
                         {log.waistCm != null && ` · ${(log.waistCm / 2.54).toFixed(1)} in`}
                         {log.bodyFatPct != null && ` · ${log.bodyFatPct}%`}
                       </p>
+                      {log.description && (
+                        <p className="text-xs text-text-muted italic mt-1 break-words">
+                          &ldquo;{log.description}&rdquo;
+                        </p>
+                      )}
                     </div>
                   </div>
                   <button
                     onClick={() => deleteLog.mutate(log.id)}
-                    className="p-2 text-text-muted hover:text-danger transition-colors touch-manipulation"
+                    className="p-2 text-text-muted hover:text-danger transition-colors touch-manipulation shrink-0"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
