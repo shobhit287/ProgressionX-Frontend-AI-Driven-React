@@ -3,12 +3,13 @@ import apiClient from '@/api/client';
 import { sessionKeys } from '@/api/sessions';
 import type { ExerciseSet } from '@/types';
 
-// Previous session sets: { exercise_name_lower: [{set_number, weight_kg, reps, reps_in_reserve}] }
+// Previous session sets: { exercise_name_lower: [{set_number, weight_kg, reps, reps_in_reserve, description}] }
 export interface PreviousSetData {
   set_number: number;
   weight_kg: number;
   reps: number;
   reps_in_reserve: number | null;
+  description: string | null;
 }
 
 export type PreviousSetsMap = Record<string, PreviousSetData[]>;

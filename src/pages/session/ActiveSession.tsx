@@ -694,14 +694,21 @@ export default function ActiveSession() {
                           </span>
                         </button>
                         {prev && !isDrop && (
-                          <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 px-1 -mt-0.5 mb-0.5">
-                            <span />
-                            <span className="text-[10px] text-surface-light text-center">prev {prev.weight_kg}</span>
-                            <span className="text-[10px] text-surface-light text-center">prev {prev.reps}</span>
-                            <span className="text-[10px] text-surface-light text-center">
-                              {prev.reps_in_reserve != null ? prev.reps_in_reserve : ''}
-                            </span>
-                          </div>
+                          <>
+                            <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 px-1 -mt-0.5 mb-0.5">
+                              <span />
+                              <span className="text-[10px] text-surface-light text-center">prev {prev.weight_kg}</span>
+                              <span className="text-[10px] text-surface-light text-center">prev {prev.reps}</span>
+                              <span className="text-[10px] text-surface-light text-center">
+                                {prev.reps_in_reserve != null ? prev.reps_in_reserve : ''}
+                              </span>
+                            </div>
+                            {prev.description && (
+                              <p className="text-[10px] text-surface-light italic px-1 -mt-0.5 mb-0.5 break-words pl-8">
+                                prev note: {prev.description}
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                     );
@@ -716,14 +723,21 @@ export default function ActiveSession() {
                         const prev = getPrevSet(exercise.exerciseName, nextSetNum);
                         if (!prev) return null;
                         return (
-                          <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center mt-2 px-1">
-                            <span className="text-[10px] text-primary text-center font-semibold">PREV</span>
-                            <span className="text-xs text-text-muted text-center">{prev.weight_kg} kg</span>
-                            <span className="text-xs text-text-muted text-center">{prev.reps} reps</span>
-                            <span className="text-xs text-text-muted text-center">
-                              {prev.reps_in_reserve != null ? prev.reps_in_reserve : '-'}
-                            </span>
-                          </div>
+                          <>
+                            <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center mt-2 px-1">
+                              <span className="text-[10px] text-primary text-center font-semibold">PREV</span>
+                              <span className="text-xs text-text-muted text-center">{prev.weight_kg} kg</span>
+                              <span className="text-xs text-text-muted text-center">{prev.reps} reps</span>
+                              <span className="text-xs text-text-muted text-center">
+                                {prev.reps_in_reserve != null ? prev.reps_in_reserve : '-'}
+                              </span>
+                            </div>
+                            {prev.description && (
+                              <p className="text-[11px] text-text-muted italic px-1 mt-1 break-words pl-8">
+                                prev note: {prev.description}
+                              </p>
+                            )}
+                          </>
                         );
                       })()}
                       <div
