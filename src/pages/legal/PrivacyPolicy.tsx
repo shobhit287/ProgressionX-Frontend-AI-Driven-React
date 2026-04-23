@@ -175,10 +175,10 @@ export default function PrivacyPolicy() {
               If you have any questions about this Privacy Policy or want to exercise
               any of your rights, contact us at{' '}
               <a
-                href="mailto:contact@progressionx.app"
+                href="mailto:progressionx.app@gmail.com"
                 className="text-[#6366f1] hover:underline"
               >
-                contact@progressionx.app
+                progressionx.app@gmail.com
               </a>
               .
             </p>

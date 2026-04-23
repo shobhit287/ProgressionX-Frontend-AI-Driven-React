@@ -194,10 +194,10 @@ export default function TermsOfService() {
             <p>
               Questions about these Terms? Contact us at{' '}
               <a
-                href="mailto:contact@progressionx.app"
+                href="mailto:progressionx.app@gmail.com"
                 className="text-[#6366f1] hover:underline"
               >
-                contact@progressionx.app
+                progressionx.app@gmail.com
               </a>
               .
             </p>
