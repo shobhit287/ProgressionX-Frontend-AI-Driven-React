@@ -22,6 +22,8 @@ const CompleteProfilePage = lazy(() => import('@/pages/profile/CompleteProfile')
 const DietPage = lazy(() => import('@/pages/diet/DietPage'));
 const ExportPage = lazy(() => import('@/pages/export/ExportPage'));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboard'));
+const PrivacyPolicyPage = lazy(() => import('@/pages/legal/PrivacyPolicy'));
+const TermsOfServicePage = lazy(() => import('@/pages/legal/TermsOfService'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +52,11 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+
+            {/* Public legal pages — reachable without auth so Google's OAuth
+                consent screen crawler and anonymous visitors can view them */}
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
 
             {/* Superadmin routes */}
             <Route element={<AdminGuard />}>
