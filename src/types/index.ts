@@ -8,11 +8,12 @@ export interface User {
   id: string;
   firstName: string;
   lastName: string;
-  age: number;
-  weight: number;
-  height: number;
-  goal: 'bulking' | 'cutting' | 'maintenance';
-  gender: 'male' | 'female' | 'other';
+  // Optional: NULL for Google-only users until they complete the profile.
+  age?: number | null;
+  weight?: number | null;
+  height?: number | null;
+  goal?: 'bulking' | 'cutting' | 'maintenance' | null;
+  gender?: 'male' | 'female' | 'other' | null;
   trainingType: TrainingType;
   experienceLevel: ExperienceLevel;
   activityLevel?: string;
@@ -20,6 +21,7 @@ export interface User {
   email: string;
   role: UserRole;
   isActive: boolean;
+  isProfileComplete: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +53,10 @@ export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
   tokenType: string;
+  // True unless the user signed up via Google and hasn't finished the
+  // fitness profile form. Frontend uses this to route first-time Google
+  // users to /profile/complete.
+  isProfileComplete: boolean;
 }
 
 // WorkoutSplit

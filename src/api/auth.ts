@@ -24,6 +24,7 @@ interface SignupPayload {
   gender: 'male' | 'female' | 'other';
   trainingType?: string;
   experienceLevel?: string;
+  activityLevel?: string;
   mobileNumber?: string;
 }
 
@@ -33,6 +34,28 @@ export function useLogin() {
   return useMutation({
     mutationFn: async (payload: LoginPayload) => {
       const { data } = await apiClient.post<TokenResponse>('/auth/login', payload);
+      return data;
+    },
+    onSuccess: async (data) => {
+      const { data: user } = await apiClient.get<User>('/users/me', {
+        headers: { Authorization: `Bearer ${data.accessToken}` },
+      });
+      setAuth(data.accessToken, data.refreshToken, user);
+    },
+  });
+}
+
+/** POSTs the Google ID token ("credential") to the backend and stores the
+ *  resulting JWT pair. Returns the TokenResponse so the caller can route
+ *  based on `isProfileComplete`. */
+export function useGoogleLogin() {
+  const setAuth = useAuthStore((s) => s.setAuth);
+
+  return useMutation({
+    mutationFn: async (credential: string) => {
+      const { data } = await apiClient.post<TokenResponse>('/auth/google', {
+        credential,
+      });
       return data;
     },
     onSuccess: async (data) => {

@@ -18,6 +18,7 @@ const WeightPage = lazy(() => import('@/pages/weight/WeightPage'));
 const AIPage = lazy(() => import('@/pages/ai/AIPage'));
 const AskPage = lazy(() => import('@/pages/ask/AskPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
+const CompleteProfilePage = lazy(() => import('@/pages/profile/CompleteProfile'));
 const DietPage = lazy(() => import('@/pages/diet/DietPage'));
 const ExportPage = lazy(() => import('@/pages/export/ExportPage'));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboard'));
@@ -57,6 +58,9 @@ export default function App() {
 
             {/* Normal user routes */}
             <Route element={<AuthGuard />}>
+              {/* Profile-completion is outside Layout — it's a full-screen
+                  blocking form that shows before the user can use the app */}
+              <Route path="/profile/complete" element={<CompleteProfilePage />} />
               <Route element={<Layout />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/splits" element={<SplitListPage />} />

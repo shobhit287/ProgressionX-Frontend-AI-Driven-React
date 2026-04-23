@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useLogin } from '@/api/auth';
+import { GoogleLogin } from '@react-oauth/google';
+import { useLogin, useGoogleLogin } from '@/api/auth';
 import { useAuthStore } from '@/store/auth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -8,23 +9,30 @@ import Input from '@/components/ui/Input';
 export default function Login() {
   const navigate = useNavigate();
   const login = useLogin();
+  const googleLogin = useGoogleLogin();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  function routeAfterLogin(isProfileComplete: boolean) {
+    const user = useAuthStore.getState().user;
+    if (user?.role === 'superadmin') {
+      navigate('/superadmin', { replace: true });
+    } else if (!isProfileComplete) {
+      navigate('/profile/complete', { replace: true });
+    } else {
+      navigate('/', { replace: true });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
 
     try {
-      await login.mutateAsync({ email, password });
-      const user = useAuthStore.getState().user;
-      if (user?.role === 'superadmin') {
-        navigate('/superadmin', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
+      const data = await login.mutateAsync({ email, password });
+      routeAfterLogin(data.isProfileComplete);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
@@ -33,7 +41,24 @@ export default function Login() {
     }
   }
 
-  const isLoading = login.isPending;
+  async function handleGoogleSuccess(credential: string | undefined) {
+    if (!credential) {
+      setError('Google sign-in failed — no credential returned.');
+      return;
+    }
+    setError('');
+    try {
+      const data = await googleLogin.mutateAsync(credential);
+      routeAfterLogin(data.isProfileComplete);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Google sign-in failed. Please try again.';
+      setError(msg);
+    }
+  }
+
+  const isLoading = login.isPending || googleLogin.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0f172a] px-4">
@@ -78,6 +103,24 @@ export default function Login() {
           >
             Login
           </Button>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-[#334155]" />
+            <span className="text-xs text-[#94a3b8] uppercase tracking-wider">or</span>
+            <div className="flex-1 h-px bg-[#334155]" />
+          </div>
+
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={(res) => handleGoogleSuccess(res.credential)}
+              onError={() => setError('Google sign-in failed. Please try again.')}
+              theme="filled_black"
+              size="large"
+              shape="rectangular"
+              text="continue_with"
+              width="320"
+            />
+          </div>
 
           <p className="text-center text-sm text-[#94a3b8]">
             Don't have an account?{' '}
