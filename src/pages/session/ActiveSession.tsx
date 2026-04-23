@@ -697,8 +697,18 @@ export default function ActiveSession() {
                           <>
                             <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 px-1 -mt-0.5 mb-0.5">
                               <span />
-                              <span className="text-[10px] text-surface-light text-center">prev {prev.weight_kg}</span>
-                              <span className="text-[10px] text-surface-light text-center">prev {prev.reps}</span>
+                              <span className="text-[10px] text-surface-light text-center">
+                                prev {prev.weight_kg}
+                                {prev.is_warmup && (
+                                  <Flame className="w-2.5 h-2.5 text-warning inline ml-0.5" />
+                                )}
+                              </span>
+                              <span className="text-[10px] text-surface-light text-center">
+                                prev {prev.reps}
+                                {(prev.is_dropset || prev.had_drops) && (
+                                  <ArrowDownCircle className="w-2.5 h-2.5 text-primary inline ml-0.5" />
+                                )}
+                              </span>
                               <span className="text-[10px] text-surface-light text-center">
                                 {prev.reps_in_reserve != null ? prev.reps_in_reserve : ''}
                               </span>
@@ -726,8 +736,18 @@ export default function ActiveSession() {
                           <>
                             <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center mt-2 px-1">
                               <span className="text-[10px] text-primary text-center font-semibold">PREV</span>
-                              <span className="text-xs text-text-muted text-center">{prev.weight_kg} kg</span>
-                              <span className="text-xs text-text-muted text-center">{prev.reps} reps</span>
+                              <span className="text-xs text-text-muted text-center">
+                                {prev.weight_kg} kg
+                                {prev.is_warmup && (
+                                  <Flame className="w-3 h-3 text-warning inline ml-0.5" />
+                                )}
+                              </span>
+                              <span className="text-xs text-text-muted text-center">
+                                {prev.reps} reps
+                                {(prev.is_dropset || prev.had_drops) && (
+                                  <ArrowDownCircle className="w-3 h-3 text-primary inline ml-0.5" />
+                                )}
+                              </span>
                               <span className="text-xs text-text-muted text-center">
                                 {prev.reps_in_reserve != null ? prev.reps_in_reserve : '-'}
                               </span>
