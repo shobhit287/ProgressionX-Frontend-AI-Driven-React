@@ -15,24 +15,36 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
   const { data: todaySplit, isLoading: splitLoading } = useTodaySplit();
-  const { data: activeSession } = useActiveSession();
+  const { data: activeSession, isLoading: activeLoading } = useActiveSession();
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
   const startSession = useStartSession();
 
   // Check if today's split already has a completed session
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const { data: todaySessions } = useSessions(
+  const { data: todaySessions, isLoading: todaySessionsLoading } = useSessions(
     todaySplit ? { splitId: todaySplit.id, fromDate: todayISO, toDate: todayISO, status: 'completed', pageSize: 1 } : undefined,
   );
   const todayCompleted = (todaySessions?.items?.length ?? 0) > 0;
 
   // Auto-complete any session left open from a previous day
-  useAutoCompleteStaleSession();
+  const { isAutoCompleting } = useAutoCompleteStaleSession();
+
+  // The workout card must wait on every query that decides which button to
+  // render (Start / Resume / Completed). Otherwise a fast render with the
+  // split loaded but the active session still pending shows "Start Session"
+  // and an accidental tap creates a new session on top of yesterday's.
+  const workoutCardLoading =
+    splitLoading ||
+    activeLoading ||
+    (!!todaySplit && todaySessionsLoading) ||
+    isAutoCompleting;
 
   const today = useMemo(() => formatDate(new Date().toISOString()), []);
 
   async function handleStartSession() {
     if (!todaySplit) return;
+    if (startSession.isPending) return;
+    if (workoutCardLoading) return;
     try {
       const session = await startSession.mutateAsync({ splitId: todaySplit.id });
       navigate(`/session/${session.id}`);
@@ -51,8 +63,9 @@ export default function Dashboard() {
         <p className="text-text-muted text-sm mt-1">{today}</p>
       </div>
 
-      {/* Active session banner */}
-      {activeSession && (
+      {/* Active session banner — only when we're sure the session is real
+          and not about to be auto-completed as stale */}
+      {!workoutCardLoading && activeSession && (
         <div
           className="bg-primary/15 border border-primary/40 rounded-2xl p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
           onClick={() => navigate(`/session/${activeSession.id}`)}
@@ -68,7 +81,7 @@ export default function Dashboard() {
       )}
 
       {/* Today's split */}
-      {splitLoading ? (
+      {workoutCardLoading ? (
         <CardSkeleton />
       ) : (
         <Card className="p-5">
