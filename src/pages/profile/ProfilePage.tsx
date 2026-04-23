@@ -47,7 +47,7 @@ export default function ProfilePage() {
       setFirstName(user.firstName);
       setLastName(user.lastName);
       setWeight(String(user.weight));
-      setGoal(user.goal);
+      setGoal(user.goal || 'bulking');
       setTrainingType(user.trainingType || 'hypertrophy');
       setExperienceLevel(user.experienceLevel || 'beginner');
       setActivityLevel(user.activityLevel || '');
