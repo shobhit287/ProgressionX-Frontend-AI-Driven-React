@@ -4,30 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
-    <!-- SEO / OAuth-consent crawler (non-JS) metadata -->
-    <title>ProgressionX — AI-Powered Gym Performance Tracker</title>
-    <meta
-      name="description"
-      content="ProgressionX is an AI-powered gym performance tracker. Log your workouts, body weight, and diet, and get personalised analysis, training plans, and coaching tailored to your progress."
-    />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://progressionx.shobhitsharma.co.in/" />
-
-    <!-- Open Graph -->
-    <meta property="og:title" content="ProgressionX — AI-Powered Gym Performance Tracker" />
-    <meta
-      property="og:description"
-      content="Track every set. Train with data. ProgressionX is an AI-powered gym performance tracker with personalised analysis, training plans, and coaching."
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://progressionx.shobhitsharma.co.in/" />
-    <meta property="og:image" content="https://progressionx.shobhitsharma.co.in/pwa-512x512.png" />
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="ProgressionX" />
-    <meta name="twitter:description" content="AI-powered gym performance tracker." />
-
     <!-- PWA / iOS Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -38,140 +14,10 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <style>
-      /* Minimal styles for the pre-hydration / no-JS fallback. React replaces
-         #root's children on mount, so real users see this for <200ms. Kept in
-         sync with the SPA's dark theme so the flash is unobtrusive. */
-      html, body {
-        margin: 0;
-        padding: 0;
-        background: #0f172a;
-        color: #f1f5f9;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        -webkit-font-smoothing: antialiased;
-      }
-      .px-prerender {
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 40px 20px;
-        line-height: 1.6;
-      }
-      .px-prerender header { margin-bottom: 32px; }
-      .px-prerender h1 {
-        font-size: 32px;
-        margin: 0 0 8px;
-        color: #f1f5f9;
-      }
-      .px-prerender h2 {
-        font-size: 20px;
-        color: #f1f5f9;
-        margin-top: 32px;
-      }
-      .px-prerender p { color: #cbd5e1; margin: 12px 0; }
-      .px-prerender ul { color: #cbd5e1; padding-left: 20px; }
-      .px-prerender a { color: #6366f1; text-decoration: none; }
-      .px-prerender a:hover { text-decoration: underline; }
-      .px-prerender .brand {
-        font-size: 22px;
-        font-weight: 700;
-        color: #f1f5f9;
-      }
-      .px-prerender .cta {
-        display: inline-block;
-        margin-right: 12px;
-        padding: 10px 20px;
-        background: #6366f1;
-        color: #fff;
-        border-radius: 10px;
-        font-weight: 600;
-      }
-      .px-prerender .cta.secondary {
-        background: #1e293b;
-        border: 1px solid #334155;
-        color: #f1f5f9;
-      }
-      .px-prerender footer {
-        margin-top: 48px;
-        padding-top: 24px;
-        border-top: 1px solid #334155;
-        color: #94a3b8;
-        font-size: 14px;
-      }
-      .px-prerender footer a { margin-right: 16px; }
-    </style>
+    <title>ProgressionX</title>
   </head>
   <body>
-    <div id="root">
-      <!--
-        Pre-hydration static content. Serves two purposes:
-        1. Gives search-engine and OAuth-consent-screen crawlers (which do not
-           execute JavaScript) a complete view of what the app is, plus visible
-           links to the privacy policy and terms of service.
-        2. Provides a minimal content flash for real users while the JS bundle
-           downloads. React's createRoot() replaces this on mount.
-      -->
-      <main class="px-prerender">
-        <header>
-          <div class="brand">ProgressionX</div>
-        </header>
-
-        <h1>Track every set. Train with data.</h1>
-        <p>
-          ProgressionX is an AI-powered gym performance tracker. Log your
-          workouts, body weight, and diet, and get personalised analysis,
-          training plans, and coaching tailored to your progress.
-        </p>
-
-        <p>
-          <a class="cta" href="/signup">Create Account</a>
-          <a class="cta secondary" href="/login">Sign In</a>
-        </p>
-
-        <h2>What you can do with ProgressionX</h2>
-        <ul>
-          <li>
-            <strong>Log workouts in real time</strong> &mdash; split-based
-            training, per-exercise set tracking, warm-ups, drop sets, and RIR.
-          </li>
-          <li>
-            <strong>See your progression</strong> &mdash; automatic charts for
-            volume, one-rep-max estimates, body weight, and personal records.
-          </li>
-          <li>
-            <strong>AI analysis and coaching</strong> &mdash; data-driven
-            feedback on your training, recovery, and goals, and plain-English
-            answers to questions about your progress.
-          </li>
-          <li>
-            <strong>Weekly splits</strong> &mdash; build your own or let the app
-            generate one based on your goal, experience level, and training
-            type.
-          </li>
-          <li>
-            <strong>Diet logging</strong> &mdash; track nutrition alongside
-            lifting so training and eating stay in sync.
-          </li>
-          <li>
-            <strong>PR tracking</strong> &mdash; automatic detection of personal
-            records across every exercise.
-          </li>
-        </ul>
-
-        <h2>About</h2>
-        <p>
-          ProgressionX is a web application and progressive web app built for
-          people who want to train seriously and track every rep. The app runs
-          on any modern phone or desktop browser and can be installed to the
-          home screen.
-        </p>
-
-        <footer>
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/terms">Terms of Service</a>
-          <a href="mailto:progessionx.app@gmail.com">Contact</a>
-        </footer>
-      </main>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

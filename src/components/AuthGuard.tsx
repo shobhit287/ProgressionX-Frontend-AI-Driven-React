@@ -2,7 +2,6 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { useCurrentUser } from '@/api/auth';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import Landing from '@/pages/landing/Landing';
 
 export default function AuthGuard() {
   const token = useAuthStore((s) => s.token);
@@ -11,13 +10,6 @@ export default function AuthGuard() {
   const location = useLocation();
 
   if (!token) {
-    // Anonymous visitors hitting `/` get the public landing page. This is
-    // required so Google's OAuth consent-screen reviewer can see the app's
-    // purpose and a link to the privacy policy without logging in. Any other
-    // gated path still routes to login.
-    if (location.pathname === '/') {
-      return <Landing />;
-    }
     return <Navigate to="/login" replace />;
   }
 

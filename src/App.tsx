@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider, keepPreviousData } from '@tanstack/re
 import Layout from '@/components/Layout';
 import AuthGuard from '@/components/AuthGuard';
 import AdminGuard from '@/components/AdminGuard';
+import GuestGuard from '@/components/GuestGuard';
 import { lazy, Suspense } from 'react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
@@ -50,8 +51,13 @@ export default function App() {
       <BrowserRouter>
         <Suspense fallback={<PageFallback />}>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+            {/* Auth routes — redirect away to the dashboard if the user is
+                already signed in, so /login and /signup never double up on an
+                authenticated session. */}
+            <Route element={<GuestGuard />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+            </Route>
 
             {/* Public legal pages — reachable without auth so Google's OAuth
                 consent screen crawler and anonymous visitors can view them */}
