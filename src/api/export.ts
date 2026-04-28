@@ -47,3 +47,22 @@ export function useExportPdf() {
     },
   });
 }
+
+/** Workout-history-only export. All three fields required: split, start, end. */
+export interface ExportWorkoutHistoryPayload {
+  splitId: string;
+  startDate: string;
+  endDate: string;
+}
+
+export function useExportWorkoutHistory() {
+  return useMutation({
+    mutationFn: async (payload: ExportWorkoutHistoryPayload) => {
+      const { data } = await apiClient.post<ExportPdfResponse>(
+        '/export/workout-history',
+        payload,
+      );
+      return data;
+    },
+  });
+}
