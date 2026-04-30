@@ -1,9 +1,14 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, ArrowRight, Flame, Calendar, Dumbbell, Trophy, CheckCircle, History } from 'lucide-react';
+import { Play, ArrowRight, RotateCcw, Flame, Calendar, Dumbbell, Trophy, CheckCircle, History } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
 import { useTodaySplit } from '@/api/splits';
-import { useActiveSession, useStartSession, useSessions } from '@/api/sessions';
+import {
+  useActiveSession,
+  useStartSession,
+  useSessions,
+  useReopenSession,
+} from '@/api/sessions';
 import { useDashboardSummary } from '@/api/analytics';
 import { useAutoCompleteStaleSession } from '@/hooks/useAutoCompleteStaleSession';
 import Button from '@/components/ui/Button';
@@ -18,13 +23,25 @@ export default function Dashboard() {
   const { data: activeSession, isLoading: activeLoading } = useActiveSession();
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
   const startSession = useStartSession();
+  const reopenSession = useReopenSession();
 
-  // Check if today's split already has a completed session
+  // All today's sessions for this split — regardless of status — so we can
+  // surface a "Reopen" affordance for accidentally completed/abandoned ones
+  // instead of blindly offering "Start Session" again. Sorted desc by
+  // started_at on the backend.
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const { data: todaySessions, isLoading: todaySessionsLoading } = useSessions(
-    todaySplit ? { splitId: todaySplit.id, fromDate: todayISO, toDate: todayISO, status: 'completed', pageSize: 1 } : undefined,
+    todaySplit
+      ? { splitId: todaySplit.id, fromDate: todayISO, toDate: todayISO, pageSize: 5 }
+      : undefined,
   );
-  const todayCompleted = (todaySessions?.items?.length ?? 0) > 0;
+  const todayItems = todaySessions?.items ?? [];
+  const todayCompleted = todayItems.some((s) => s.status === 'completed');
+  // Most recent same-day session that is NOT in_progress — candidate for
+  // reopen if the user accidentally abandoned/completed.
+  const reopenCandidate = todayItems.find(
+    (s) => s.status === 'abandoned' || s.status === 'completed',
+  );
 
   // Auto-complete any session left open from a previous day
   const { isAutoCompleting } = useAutoCompleteStaleSession();
@@ -48,6 +65,17 @@ export default function Dashboard() {
     try {
       const session = await startSession.mutateAsync({ splitId: todaySplit.id });
       navigate(`/session/${session.id}`);
+    } catch {
+      // error handled by query
+    }
+  }
+
+  async function handleReopen() {
+    if (!reopenCandidate) return;
+    if (reopenSession.isPending) return;
+    try {
+      await reopenSession.mutateAsync(reopenCandidate.id);
+      navigate(`/session/${reopenCandidate.id}`);
     } catch {
       // error handled by query
     }
@@ -105,12 +133,56 @@ export default function Dashboard() {
                   Resume Session
                 </Button>
               ) : todayCompleted ? (
-                <div className="flex items-center gap-3 py-2">
-                  <CheckCircle className="w-6 h-6 text-success" />
-                  <div>
-                    <p className="text-success font-semibold">Workout Complete</p>
-                    <p className="text-text-muted text-xs">Great job today!</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 py-2">
+                    <CheckCircle className="w-6 h-6 text-success" />
+                    <div>
+                      <p className="text-success font-semibold">Workout Complete</p>
+                      <p className="text-text-muted text-xs">Great job today!</p>
+                    </div>
                   </div>
+                  {/* Escape hatch: if the user accidentally tapped Complete,
+                      same-day reopen brings the session back to in-progress. */}
+                  {reopenCandidate && (
+                    <button
+                      onClick={handleReopen}
+                      disabled={reopenSession.isPending}
+                      className="text-xs text-primary hover:underline disabled:opacity-50"
+                    >
+                      {reopenSession.isPending
+                        ? 'Reopening…'
+                        : 'Completed by mistake? Reopen this session'}
+                    </button>
+                  )}
+                </div>
+              ) : reopenCandidate ? (
+                /* Today already has a non-active session (most likely
+                   accidentally abandoned). Don't offer "Start fresh" — at
+                   most one session per day per split. Only path forward
+                   is to reopen the existing one. */
+                <div className="space-y-3">
+                  <div className="rounded-xl bg-warning/10 border border-warning/30 p-3 text-sm">
+                    <p className="text-warning font-semibold">
+                      Today's session was{' '}
+                      {reopenCandidate.status === 'abandoned'
+                        ? 'abandoned'
+                        : 'completed'}
+                    </p>
+                    <p className="text-text-muted text-xs mt-0.5">
+                      Reopen it to keep logging — your existing sets are
+                      preserved.
+                    </p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    loading={reopenSession.isPending}
+                    onClick={handleReopen}
+                  >
+                    <RotateCcw className="w-5 h-5 mr-2" />
+                    Reopen Session
+                  </Button>
                 </div>
               ) : (
                 <Button

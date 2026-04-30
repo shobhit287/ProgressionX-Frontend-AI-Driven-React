@@ -48,9 +48,10 @@ export function useExportPdf() {
   });
 }
 
-/** Workout-history-only export. All three fields required: split, start, end. */
+/** Workout-history-only export. Date range required; splitId is optional —
+ *  omit to export across every split the user trained on in the range. */
 export interface ExportWorkoutHistoryPayload {
-  splitId: string;
+  splitId?: string;
   startDate: string;
   endDate: string;
 }

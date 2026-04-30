@@ -515,6 +515,41 @@ export default function ActiveSession() {
             restStarted != null ? Math.max(0, restSeconds - Math.floor((now - restStarted) / 1000)) : null;
           const restOverdue = restStarted != null && restRemaining === 0;
 
+          // Compute display labels for every set so drops show as
+          // <parent>.<n> (e.g. 3.1, 3.2) and regular sets count
+          // sequentially 1, 2, 3 — independent of raw DB set_number which
+          // jumps over drop rows. Same numbering scheme as the export PDF.
+          const sortedSets = [...exercise.sets].sort(
+            (a, b) => a.setNumber - b.setNumber,
+          );
+          const setLabels: Record<string, string> = {};
+          let parentNum = 0;
+          let dropIdx = 0;
+          for (const s of sortedSets) {
+            if (s.parentSetId) {
+              dropIdx += 1;
+              setLabels[s.id] = `${parentNum}.${dropIdx}`;
+            } else {
+              parentNum += 1;
+              dropIdx = 0;
+              setLabels[s.id] = String(parentNum);
+            }
+          }
+          const regularSetCount = parentNum;
+          const nextRegularLabel = String(regularSetCount + 1);
+
+          // While a drop chain is active, compute the next drop's label
+          // (e.g. 3.2 if one drop already exists for the top set 3).
+          const flow = dropFlow[exercise.id];
+          let nextDropLabel: string | null = null;
+          if (flow) {
+            const parentLabel = setLabels[flow.parentSetId] ?? '?';
+            const existingDropCount = exercise.sets.filter(
+              (s) => s.parentSetId === flow.parentSetId,
+            ).length;
+            nextDropLabel = `${parentLabel}.${existingDropCount + 1}`;
+          }
+
           return (
             <div
               key={exercise.id}
@@ -673,12 +708,8 @@ export default function ActiveSession() {
                           className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center w-full text-left rounded-lg active:bg-surface-light/40 px-1 py-1.5 transition-colors touch-manipulation"
                           onClick={() => isActive && startEdit(set)}
                         >
-                          <span className="text-sm text-text-muted text-center">
-                            {isDrop ? (
-                              <ArrowDownCircle className="w-3.5 h-3.5 text-primary inline" />
-                            ) : (
-                              set.setNumber
-                            )}
+                          <span className={`text-sm text-center ${isDrop ? 'text-primary font-semibold' : 'text-text-muted'}`}>
+                            {setLabels[set.id] ?? set.setNumber}
                             {set.isWarmup && (
                               <Flame className="w-3 h-3 text-warning inline ml-0.5" />
                             )}
@@ -724,12 +755,16 @@ export default function ActiveSession() {
                     );
                   })}
 
-                  {/* New set row (only if active) */}
-                  {isActive && (
+                  {/* New set row (only if active and no drop chain in flight) */}
+                  {isActive && !flow && (
                     <>
-                      {/* Previous session hint for the next set */}
+                      {/* Previous session hint for the next set. Use the
+                          regular-set count instead of total length so the
+                          PREV lookup matches what the user expects (e.g.
+                          working set 4) rather than the raw DB position
+                          which jumps over drops. */}
                       {(() => {
-                        const nextSetNum = exercise.sets.length + 1;
+                        const nextSetNum = regularSetCount + 1;
                         const prev = getPrevSet(exercise.exerciseName, nextSetNum);
                         if (!prev) return null;
                         return (
@@ -765,7 +800,7 @@ export default function ActiveSession() {
                         className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center mt-1"
                       >
                         <span className="text-sm text-primary text-center font-bold">
-                          {exercise.sets.length + 1}
+                          {nextRegularLabel}
                         </span>
                         <input
                           type="number"
@@ -855,32 +890,36 @@ export default function ActiveSession() {
                       {/* Log set button */}
                       <button
                         onClick={() => handleLogSet(exercise)}
-                        disabled={addSet.isPending || !!dropFlow[exercise.id]}
+                        disabled={addSet.isPending}
                         className="mt-3 w-full h-12 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-white text-base font-bold transition-colors disabled:opacity-50 touch-manipulation"
                       >
                         {addSet.isPending ? 'Logging...' : 'Log Set'}
                       </button>
+                    </>
+                  )}
 
-                      {/* Dropset capture — appears after a top set was logged
-                          with the dropset checkbox on. Chain drops until the
-                          user taps "Finish drops". */}
-                      {dropFlow[exercise.id] && (() => {
-                        const dropInp = dropInputs[exercise.id] ?? emptySet();
-                        return (
-                          <div className="mt-3 rounded-xl border border-primary/40 bg-primary/5 p-3 ml-6">
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs text-primary font-semibold flex items-center gap-1">
-                                <ArrowDownCircle className="w-3.5 h-3.5" /> Drop set —
-                                enter dropped weight / reps / RIR
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => finishDrops(exercise.id)}
-                                className="text-xs text-text-muted hover:text-text underline"
-                              >
-                                Finish drops
-                              </button>
-                            </div>
+                  {/* Dropset capture — sibling of the new-set block (not
+                      nested), so when a drop chain is active the user only
+                      sees this panel. After "Finish drops" the regular new-
+                      set input reappears with the next sequential number. */}
+                  {isActive && flow && (() => {
+                    const dropInp = dropInputs[exercise.id] ?? emptySet();
+                    return (
+                      <>
+                        <div className="mt-3 rounded-xl border border-primary/40 bg-primary/5 p-3 ml-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs text-primary font-semibold flex items-center gap-1">
+                              <ArrowDownCircle className="w-3.5 h-3.5" /> Drop {nextDropLabel}
+                              {' '}— enter dropped weight / reps / RIR
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => finishDrops(exercise.id)}
+                              className="text-xs text-text-muted hover:text-text underline"
+                            >
+                              Finish drops
+                            </button>
+                          </div>
                             <div className="grid grid-cols-[1fr_1fr_44px] gap-1.5 items-center">
                               <input
                                 type="number"
@@ -924,10 +963,9 @@ export default function ActiveSession() {
                               {addSet.isPending ? 'Logging drop...' : 'Log Drop'}
                             </button>
                           </div>
-                        );
-                      })()}
-                    </>
-                  )}
+                        </>
+                      );
+                    })()}
                 </div>
               )}
             </div>

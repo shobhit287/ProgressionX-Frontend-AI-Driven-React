@@ -284,8 +284,10 @@ function ExportPanel({ splits }: { splits: WorkoutSplit[] }) {
       return;
     }
     try {
+      // "ALL" sentinel → omit splitId so the backend exports across every
+      // split the user trained on in this range.
       const result = await exportHistory.mutateAsync({
-        splitId,
+        splitId: splitId === 'ALL' ? undefined : splitId,
         startDate,
         endDate,
       });
@@ -317,6 +319,7 @@ function ExportPanel({ splits }: { splits: WorkoutSplit[] }) {
             }`}
           >
             <option value="">— Select a split —</option>
+            <option value="ALL">All sessions (every split)</option>
             {splits.map((s) => (
               <option key={s.id} value={s.id}>
                 {capitalize(s.day)} — {s.name}

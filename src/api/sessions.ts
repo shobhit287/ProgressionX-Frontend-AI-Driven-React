@@ -126,3 +126,22 @@ export function useAbandonSession() {
     },
   });
 }
+
+/** Restore a same-day session to in-progress after an accidental
+ *  abandon / complete. Backend enforces the same-day + single-active
+ *  guards. */
+export function useReopenSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.patch<WorkoutSession>(`/sessions/${id}/reopen`);
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables) });
+    },
+  });
+}
