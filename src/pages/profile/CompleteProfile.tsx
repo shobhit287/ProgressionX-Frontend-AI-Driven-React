@@ -68,7 +68,7 @@ export default function CompleteProfile() {
         trainingType: form.trainingType,
         experienceLevel: form.experienceLevel,
         activityLevel: form.activityLevel || undefined,
-      } as unknown as Parameters<typeof update.mutateAsync>[0]);
+      });
       navigate('/', { replace: true });
     } catch (err: unknown) {
       const msg =

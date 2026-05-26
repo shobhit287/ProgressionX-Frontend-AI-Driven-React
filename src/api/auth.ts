@@ -100,8 +100,11 @@ export function useUpdateProfile() {
     mutationFn: async (payload: {
       firstName?: string;
       lastName?: string;
+      age?: number;
       weight?: number;
+      height?: number;
       goal?: 'bulking' | 'cutting' | 'maintenance';
+      gender?: 'male' | 'female' | 'other';
       trainingType?: string;
       experienceLevel?: string;
       activityLevel?: string;
@@ -111,7 +114,11 @@ export function useUpdateProfile() {
     },
     onSuccess: (data) => {
       setUser(data);
-      void queryClient.invalidateQueries({ queryKey: authKeys.currentUser });
+      // Write the fresh user into the query cache synchronously. If we only
+      // invalidate, AuthGuard reads the stale cached user (isProfileComplete
+      // still false) for one render and bounces the user back to
+      // /profile/complete, which remounts the form and wipes the inputs.
+      queryClient.setQueryData(authKeys.currentUser, data);
     },
   });
 }
