@@ -4,6 +4,7 @@ import { useSession, useCompleteSession, useAbandonSession } from '@/api/session
 import { useAddSet, useUpdateSet, useDeleteSet, usePreviousSets } from '@/api/sets';
 import SessionCoach from '@/components/SessionCoach';
 import AiSessionPlan from '@/components/AiSessionPlan';
+import LastSessionPanel from '@/components/LastSessionPanel';
 import type { PreviousSetData } from '@/api/sets';
 import type { SessionExercise, ExerciseSet } from '@/types';
 import { formatDuration, formatWeight } from '@/utils/format';
@@ -504,6 +505,9 @@ export default function ActiveSession() {
 
       {/* ---- AI Recommended Plan ---- */}
       {isActive && <AiSessionPlan sessionId={id!} />}
+
+      {/* ---- Last Session (collapsed by default) ---- */}
+      {isActive && <LastSessionPanel sessionId={id!} />}
 
       {/* ---- Exercise cards ---- */}
       <div className="max-w-lg mx-auto px-3 pt-4 space-y-4">

@@ -12,6 +12,7 @@ export const sessionKeys = {
   active: ['sessions', 'active'] as const,
   detail: (id: string) => ['sessions', id] as const,
   datesBySplit: (splitId: string) => ['sessions', 'dates', splitId] as const,
+  previous: (id: string) => ['sessions', id, 'previous'] as const,
 };
 
 interface SessionFilters {
@@ -69,6 +70,22 @@ export function useSession(id: string) {
       return data;
     },
     enabled: !!id,
+  });
+}
+
+/** Most recent completed session for the same split as `id`. Null when
+ *  there's no prior session for that split (first-time user). */
+export function usePreviousSession(id: string) {
+  return useQuery({
+    queryKey: sessionKeys.previous(id),
+    queryFn: async () => {
+      const { data } = await apiClient.get<WorkoutSessionDetail | null>(
+        `/sessions/${id}/previous-session`,
+      );
+      return data;
+    },
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
