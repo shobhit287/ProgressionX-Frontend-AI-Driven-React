@@ -13,8 +13,12 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [expandedExercise, setExpandedExercise] = useState<Record<string, boolean>>({});
 
-  if (isError) return null;
-  if (!isLoading && !prev) return null;
+  // Header stays mounted regardless of fetch state so the user can always
+  // see and tap it. Previously we returned null when `prev` was null (e.g.
+  // first-ever session for this split, or only abandoned prior sessions),
+  // which made the panel flash in during loading and then vanish.
+  const hasData = !!prev && prev.exercises.length > 0;
+  const exercises = prev?.exercises ?? [];
 
   const toggleExercise = (id: string) => {
     setExpandedExercise((p) => ({ ...p, [id]: !p[id] }));
@@ -36,6 +40,9 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
                 — {formatDate(prev.startedAt)}
               </span>
             )}
+            {!isLoading && !hasData && !isError && (
+              <span className="text-xs text-text-muted italic">— none yet</span>
+            )}
           </div>
           {expanded ? (
             <ChevronUp className="w-5 h-5 text-text-muted" />
@@ -51,9 +58,13 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="text-sm">Loading last session...</span>
               </div>
-            ) : prev ? (
+            ) : isError ? (
+              <p className="text-xs text-text-muted py-4 text-center">
+                Couldn't load last session.
+              </p>
+            ) : hasData ? (
               <div className="space-y-1.5">
-                {prev.exercises
+                {exercises
                   .slice()
                   .sort((a, b) => a.displayOrder - b.displayOrder)
                   .map((exercise) => (
@@ -65,7 +76,11 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
                     />
                   ))}
               </div>
-            ) : null}
+            ) : (
+              <p className="text-xs text-text-muted py-4 text-center">
+                No prior completed session for this split yet.
+              </p>
+            )}
           </div>
         )}
       </div>
