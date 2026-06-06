@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession, useCompleteSession, useAbandonSession } from '@/api/sessions';
 import { useAddSet, useUpdateSet, useDeleteSet, usePreviousSets } from '@/api/sets';
 import SessionCoach from '@/components/SessionCoach';
@@ -74,6 +74,12 @@ function useElapsedTimer(startedAt: string | undefined) {
 export default function ActiveSession() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Edit mode is set when the user opens this page to fill in a backfilled
+  // (already-completed) session, or to retroactively edit an old session.
+  // It unlocks add/edit/delete-set inputs without flipping the session back
+  // to IN_PROGRESS, which would conflict with today's live session.
+  const editMode = searchParams.get('edit') === '1';
 
   const { data: session, isLoading, error } = useSession(id ?? '');
   const elapsed = useElapsedTimer(session?.startedAt);
@@ -84,10 +90,13 @@ export default function ActiveSession() {
   const completeSession = useCompleteSession();
   const abandonSession = useAbandonSession();
 
-  // Auto-complete if this session is from a previous day
+  // Auto-complete if this session is from a previous day. Skipped in edit
+  // mode — backfill sessions are intentionally past-dated and must not be
+  // auto-completed (they already are completed, and we're editing them).
   const autoCompletedRef = useRef(false);
   useEffect(() => {
     if (!session || autoCompletedRef.current) return;
+    if (editMode) return;
     if (session.status !== 'in_progress') return;
 
     const startedDay = new Date(session.startedAt);
@@ -102,7 +111,7 @@ export default function ActiveSession() {
       { id: session.id, notes: 'Auto-completed (session from previous day)' },
       { onSuccess: () => navigate('/') },
     );
-  }, [session, completeSession, navigate]);
+  }, [session, completeSession, navigate, editMode]);
 
   // Fetch previous session's sets for comparison
   const { data: previousSets } = usePreviousSets(id ?? '');
@@ -452,9 +461,12 @@ export default function ActiveSession() {
   }
 
   const isActive = session.status === 'in_progress';
+  // Inputs/edit-on-tap are gated on this, NOT on isActive — backfill /
+  // retroactive editing of a completed session uses ?edit=1 to opt in.
+  const canEdit = isActive || editMode;
 
   return (
-    <div className={isActive ? 'pb-44' : 'pb-8'}>
+    <div className={canEdit ? 'pb-44' : 'pb-8'}>
       {/* ---- Timer header ---- */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
         <div className="flex items-center justify-between max-w-lg mx-auto gap-3">
@@ -502,6 +514,21 @@ export default function ActiveSession() {
           )}
         </div>
       </div>
+
+      {/* ---- Backfill / edit-mode banner ---- */}
+      {!isActive && editMode && (
+        <div className="max-w-lg mx-auto px-3 pt-3">
+          <div className="rounded-xl bg-warning/10 border border-warning/30 px-4 py-3">
+            <p className="text-warning text-sm font-semibold">
+              Logging past session
+            </p>
+            <p className="text-text-muted text-xs mt-0.5">
+              {session.startedAt && `Workout on ${new Date(session.startedAt).toLocaleDateString()}. `}
+              Add sets you did that day. Tap Done when finished.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ---- AI Recommended Plan ---- */}
       {isActive && <AiSessionPlan sessionId={id!} />}
@@ -710,7 +737,7 @@ export default function ActiveSession() {
                       <div key={set.id} className={`mb-1 ${isDrop ? 'ml-6 border-l-2 border-primary/40 pl-1' : ''}`}>
                         <button
                           className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center w-full text-left rounded-lg active:bg-surface-light/40 px-1 py-1.5 transition-colors touch-manipulation"
-                          onClick={() => isActive && startEdit(set)}
+                          onClick={() => canEdit && startEdit(set)}
                         >
                           <span className={`text-sm text-center ${isDrop ? 'text-primary font-semibold' : 'text-text-muted'}`}>
                             {setLabels[set.id] ?? set.setNumber}
@@ -759,8 +786,8 @@ export default function ActiveSession() {
                     );
                   })}
 
-                  {/* New set row (only if active and no drop chain in flight) */}
-                  {isActive && !flow && (
+                  {/* New set row (only if editable and no drop chain in flight) */}
+                  {canEdit && !flow && (
                     <>
                       {/* Previous session hint for the next set. Use the
                           regular-set count instead of total length so the
@@ -906,7 +933,7 @@ export default function ActiveSession() {
                       nested), so when a drop chain is active the user only
                       sees this panel. After "Finish drops" the regular new-
                       set input reappears with the next sequential number. */}
-                  {isActive && flow && (() => {
+                  {canEdit && flow && (() => {
                     const dropInp = dropInputs[exercise.id] ?? emptySet();
                     return (
                       <>
@@ -977,7 +1004,21 @@ export default function ActiveSession() {
         })}
       </div>
 
-      {/* ---- Sticky bottom bar ---- */}
+      {/* ---- Sticky bottom bar (edit mode: Done only) ---- */}
+      {!isActive && editMode && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-50">
+          <div className="max-w-lg mx-auto">
+            <button
+              onClick={() => navigate('/sessions')}
+              className="w-full h-14 rounded-xl bg-success hover:bg-success/90 active:bg-success/80 text-white text-lg font-bold transition-colors touch-manipulation"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Sticky bottom bar (live session) ---- */}
       {isActive && (
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-50">
           <div className="max-w-lg mx-auto space-y-2">

@@ -107,6 +107,27 @@ export function useStartSession() {
   });
 }
 
+/** Log a workout the user did on a past day but never recorded. Creates a
+ *  COMPLETED session for the given date, seeded with the split's exercises
+ *  but no sets — the caller then navigates the user into the active-session
+ *  page in edit mode to fill them in. */
+export function useBackfillSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { splitId: string; date: string }) => {
+      const { data } = await apiClient.post<WorkoutSessionDetail>(
+        '/sessions/backfill',
+        payload,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
+    },
+  });
+}
+
 export function useCompleteSession() {
   const queryClient = useQueryClient();
 

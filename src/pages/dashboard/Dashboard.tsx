@@ -1,13 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, ArrowRight, RotateCcw, Flame, Calendar, Dumbbell, Trophy, CheckCircle, History } from 'lucide-react';
+import { Play, ArrowRight, RotateCcw, Flame, Calendar, Dumbbell, Trophy, CheckCircle, History, ClipboardEdit } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
-import { useTodaySplit } from '@/api/splits';
+import { useTodaySplit, useSplits } from '@/api/splits';
 import {
   useActiveSession,
   useStartSession,
   useSessions,
   useReopenSession,
+  useBackfillSession,
 } from '@/api/sessions';
 import { useDashboardSummary } from '@/api/analytics';
 import { useAutoCompleteStaleSession } from '@/hooks/useAutoCompleteStaleSession';
@@ -24,6 +25,53 @@ export default function Dashboard() {
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
   const startSession = useStartSession();
   const reopenSession = useReopenSession();
+  const backfillSession = useBackfillSession();
+  const { data: allSplits } = useSplits();
+
+  // Backfill modal — open via the "Log past session" link below.
+  const [backfillOpen, setBackfillOpen] = useState(false);
+  const yesterdayISO = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }, []);
+  const [backfillDate, setBackfillDate] = useState(yesterdayISO);
+  const [backfillSplitId, setBackfillSplitId] = useState('');
+  const [backfillError, setBackfillError] = useState('');
+
+  // When the modal opens, default the split to whichever split matches the
+  // chosen date's day-of-week. Saves the user a tap in the common case.
+  const dayOfWeekFor = (iso: string): string => {
+    const d = new Date(iso + 'T00:00:00');
+    return ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][d.getDay()];
+  };
+  function openBackfill() {
+    setBackfillError('');
+    setBackfillDate(yesterdayISO);
+    const dayMatch = allSplits?.find((s) => s.day === dayOfWeekFor(yesterdayISO));
+    setBackfillSplitId(dayMatch?.id ?? allSplits?.[0]?.id ?? '');
+    setBackfillOpen(true);
+  }
+  async function handleBackfillSubmit() {
+    if (!backfillSplitId || !backfillDate) {
+      setBackfillError('Pick a date and a split');
+      return;
+    }
+    setBackfillError('');
+    try {
+      const session = await backfillSession.mutateAsync({
+        splitId: backfillSplitId,
+        date: backfillDate,
+      });
+      setBackfillOpen(false);
+      navigate(`/session/${session.id}?edit=1`);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Could not create backfill session.';
+      setBackfillError(msg);
+    }
+  }
 
   // All today's sessions for this split — regardless of status — so we can
   // surface a "Reopen" affordance for accidentally completed/abandoned ones
@@ -252,6 +300,23 @@ export default function Dashboard() {
         <ArrowRight className="w-4 h-4 text-text-muted" />
       </button>
 
+      {/* Log a past session — forgot to log yesterday, etc. */}
+      <button
+        onClick={openBackfill}
+        className="w-full flex items-center justify-between rounded-2xl bg-surface border border-border px-4 py-3 active:scale-[0.99] transition-transform"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-warning/20 flex items-center justify-center">
+            <ClipboardEdit className="w-4 h-4 text-warning" />
+          </div>
+          <div className="text-left">
+            <p className="text-text text-sm font-semibold">Log a Missed Session</p>
+            <p className="text-text-muted text-xs">Forgot to log yesterday? Backfill it now</p>
+          </div>
+        </div>
+        <ArrowRight className="w-4 h-4 text-text-muted" />
+      </button>
+
       {/* Recent PRs */}
       {summaryLoading ? (
         <div className="space-y-2">
@@ -284,6 +349,82 @@ export default function Dashboard() {
           </div>
         </div>
       ) : null}
+
+      {/* Backfill modal */}
+      {backfillOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4"
+          onClick={() => !backfillSession.isPending && setBackfillOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-surface rounded-2xl p-5 space-y-4 border border-border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-lg font-bold text-text">Log Past Session</h3>
+              <p className="text-text-muted text-xs mt-1">
+                Creates a completed session you can fill in with sets.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-text-muted mb-1">
+                Date
+              </label>
+              <input
+                type="date"
+                value={backfillDate}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => {
+                  setBackfillDate(e.target.value);
+                  // Auto-pick split for the new day if it changed
+                  const m = allSplits?.find((s) => s.day === dayOfWeekFor(e.target.value));
+                  if (m) setBackfillSplitId(m.id);
+                }}
+                className="w-full h-11 rounded-lg bg-background border border-border text-text px-3 focus:border-primary outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-text-muted mb-1">
+                Split
+              </label>
+              <select
+                value={backfillSplitId}
+                onChange={(e) => setBackfillSplitId(e.target.value)}
+                className="w-full h-11 rounded-lg bg-background border border-border text-text px-3 focus:border-primary outline-none"
+              >
+                {(allSplits ?? []).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.day})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {backfillError && (
+              <p className="text-danger text-sm">{backfillError}</p>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setBackfillOpen(false)}
+                disabled={backfillSession.isPending}
+                className="flex-1 h-12 rounded-xl bg-surface-light text-text font-semibold disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBackfillSubmit}
+                disabled={backfillSession.isPending || !backfillSplitId}
+                className="flex-1 h-12 rounded-xl bg-primary text-white font-bold disabled:opacity-50"
+              >
+                {backfillSession.isPending ? 'Creating…' : 'Continue'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
