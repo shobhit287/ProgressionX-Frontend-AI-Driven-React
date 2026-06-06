@@ -13,10 +13,15 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [expandedExercise, setExpandedExercise] = useState<Record<string, boolean>>({});
 
-  // Header stays mounted regardless of fetch state so the user can always
-  // see and tap it. Previously we returned null when `prev` was null (e.g.
-  // first-ever session for this split, or only abandoned prior sessions),
-  // which made the panel flash in during loading and then vanish.
+  // If the request failed, hide the panel entirely instead of surfacing a
+  // scary "Couldn't load" error in the active-session UI. AiSessionPlan does
+  // the same — a transient backend hiccup shouldn't disrupt the workout.
+  if (isError) return null;
+
+  // Header stays mounted for loading / no-data cases so it doesn't flash in
+  // and disappear. Previously we returned null when `prev` was null (first
+  // session for this split, or only abandoned/empty prior sessions), which
+  // made the panel briefly visible then vanish.
   const hasData = !!prev && prev.exercises.length > 0;
   const exercises = prev?.exercises ?? [];
 
@@ -40,7 +45,7 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
                 — {formatDate(prev.startedAt)}
               </span>
             )}
-            {!isLoading && !hasData && !isError && (
+            {!isLoading && !hasData && (
               <span className="text-xs text-text-muted italic">— none yet</span>
             )}
           </div>
@@ -58,10 +63,6 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="text-sm">Loading last session...</span>
               </div>
-            ) : isError ? (
-              <p className="text-xs text-text-muted py-4 text-center">
-                Couldn't load last session.
-              </p>
             ) : hasData ? (
               <div className="space-y-1.5">
                 {exercises
