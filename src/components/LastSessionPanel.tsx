@@ -13,15 +13,11 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [expandedExercise, setExpandedExercise] = useState<Record<string, boolean>>({});
 
-  // If the request failed, hide the panel entirely instead of surfacing a
-  // scary "Couldn't load" error in the active-session UI. AiSessionPlan does
-  // the same — a transient backend hiccup shouldn't disrupt the workout.
-  if (isError) return null;
-
-  // Header stays mounted for loading / no-data cases so it doesn't flash in
-  // and disappear. Previously we returned null when `prev` was null (first
-  // session for this split, or only abandoned/empty prior sessions), which
-  // made the panel briefly visible then vanish.
+  // Header stays mounted for all states — loading, no-data, AND error — so
+  // the panel never just vanishes. Earlier versions returned null on error
+  // or on `!prev`, which left the user wondering whether the section even
+  // existed. The body distinguishes between states so the user knows what
+  // happened.
   const hasData = !!prev && prev.exercises.length > 0;
   const exercises = prev?.exercises ?? [];
 
@@ -45,8 +41,11 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
                 — {formatDate(prev.startedAt)}
               </span>
             )}
-            {!isLoading && !hasData && (
+            {!isLoading && !hasData && !isError && (
               <span className="text-xs text-text-muted italic">— none yet</span>
+            )}
+            {isError && (
+              <span className="text-xs text-danger italic">— unavailable</span>
             )}
           </div>
           {expanded ? (
@@ -63,6 +62,10 @@ export default function LastSessionPanel({ sessionId }: LastSessionPanelProps) {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="text-sm">Loading last session...</span>
               </div>
+            ) : isError ? (
+              <p className="text-xs text-text-muted py-4 text-center">
+                Couldn't load last session — check that the backend is up to date.
+              </p>
             ) : hasData ? (
               <div className="space-y-1.5">
                 {exercises

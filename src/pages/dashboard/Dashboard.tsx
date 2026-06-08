@@ -66,9 +66,13 @@ export default function Dashboard() {
       setBackfillOpen(false);
       navigate(`/session/${session.id}?edit=1`);
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Could not create backfill session.';
+      // Backend uses {error: {message}} via domain_exception_handler. FastAPI
+      // validation errors still come back as {detail}. Read both so we surface
+      // the actual reason (e.g. "A session already exists for this split on
+      // that date") instead of the generic fallback.
+      const data = (err as { response?: { data?: { detail?: string; error?: { message?: string } } } })
+        ?.response?.data;
+      const msg = data?.error?.message || data?.detail || 'Could not create backfill session.';
       setBackfillError(msg);
     }
   }
