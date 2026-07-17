@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useSession, useSessions, useSessionDatesBySplit } from '@/api/sessions';
 import { useSplits } from '@/api/splits';
 import { useExportWorkoutHistory } from '@/api/export';
+import RestDivider from '@/components/RestDivider';
 import type { WorkoutSessionDetail, WorkoutSplit } from '@/types';
 import { capitalize, formatDate, formatDuration, formatWeight } from '@/utils/format';
 import {
@@ -400,7 +401,8 @@ function ExportPanel({ splits }: { splits: WorkoutSplit[] }) {
           <li>At-a-glance counts: sessions, sets, reps, total volume</li>
           <li>
             <strong>Per-session detail</strong> — every exercise, every set,
-            with weight, reps, RIR, drop sets, warm-ups, supersets, and notes
+            with weight, reps, RIR, rest between sets, drop sets, warm-ups,
+            supersets, and notes
           </li>
           <li>Short AI performance summary, highlights, and suggestions at the end</li>
         </ul>
@@ -529,6 +531,8 @@ function SessionDetailCard({
                           isDrop ? 'ml-6 border-l-2 border-primary/40 pl-1' : ''
                         }`}
                       >
+                        {/* Rest taken before this set (between it and the one above) */}
+                        <RestDivider seconds={s.restSeconds} />
                         <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center py-1.5 px-1">
                           <span className="text-sm text-text-muted text-center">
                             {isDrop ? (

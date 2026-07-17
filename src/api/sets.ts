@@ -13,6 +13,7 @@ export interface PreviousSetData {
   is_dropset: boolean;
   had_drops: boolean;
   description: string | null;
+  rest_seconds: number | null;
 }
 
 export type PreviousSetsMap = Record<string, PreviousSetData[]>;

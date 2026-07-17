@@ -5,6 +5,7 @@ import { useAddSet, useUpdateSet, useDeleteSet, usePreviousSets } from '@/api/se
 import SessionCoach from '@/components/SessionCoach';
 import AiSessionPlan from '@/components/AiSessionPlan';
 import LastSessionPanel from '@/components/LastSessionPanel';
+import RestDivider from '@/components/RestDivider';
 import type { PreviousSetData } from '@/api/sets';
 import type { SessionExercise, ExerciseSet } from '@/types';
 import { formatDuration, formatWeight } from '@/utils/format';
@@ -735,6 +736,8 @@ export default function ActiveSession() {
                     const isDrop = !!set.parentSetId;
                     return (
                       <div key={set.id} className={`mb-1 ${isDrop ? 'ml-6 border-l-2 border-primary/40 pl-1' : ''}`}>
+                        {/* Rest taken before this set (between it and the one above) */}
+                        <RestDivider seconds={set.restSeconds} />
                         <button
                           className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center w-full text-left rounded-lg active:bg-surface-light/40 px-1 py-1.5 transition-colors touch-manipulation"
                           onClick={() => canEdit && startEdit(set)}
@@ -775,6 +778,11 @@ export default function ActiveSession() {
                                 {prev.reps_in_reserve != null ? prev.reps_in_reserve : ''}
                               </span>
                             </div>
+                            {prev.rest_seconds != null && (
+                              <p className="text-[10px] text-surface-light px-1 -mt-0.5 mb-0.5 pl-8 tabular-nums">
+                                prev rest: {formatDuration(prev.rest_seconds)}
+                              </p>
+                            )}
                             {prev.description && (
                               <p className="text-[10px] text-surface-light italic px-1 -mt-0.5 mb-0.5 break-words pl-8">
                                 prev note: {prev.description}
@@ -818,6 +826,11 @@ export default function ActiveSession() {
                                 {prev.reps_in_reserve != null ? prev.reps_in_reserve : '-'}
                               </span>
                             </div>
+                            {prev.rest_seconds != null && (
+                              <p className="text-[11px] text-text-muted px-1 mt-1 pl-8 tabular-nums">
+                                prev rest: {formatDuration(prev.rest_seconds)}
+                              </p>
+                            )}
                             {prev.description && (
                               <p className="text-[11px] text-text-muted italic px-1 mt-1 break-words pl-8">
                                 prev note: {prev.description}

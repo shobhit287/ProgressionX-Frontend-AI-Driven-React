@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePreviousSession } from '@/api/sessions';
 import { formatDate, formatWeight } from '@/utils/format';
 import { History, ChevronDown, ChevronUp, Flame, ArrowDownCircle, Loader2 } from 'lucide-react';
+import RestDivider from '@/components/RestDivider';
 import type { ExerciseSet, SessionExercise } from '@/types';
 
 interface LastSessionPanelProps {
@@ -166,6 +167,8 @@ function SetRow({ set, label }: SetRowProps) {
   const isDrop = !!set.parentSetId;
   return (
     <div className={isDrop ? 'ml-5 border-l-2 border-primary/40 pl-1.5' : ''}>
+      {/* Rest taken before this set (between it and the one above) */}
+      <RestDivider seconds={set.restSeconds} compact />
       <div
         className={`grid grid-cols-[32px_1fr_1fr_44px] gap-1 items-center px-1 py-0.5 ${
           set.isWarmup ? 'opacity-60' : ''

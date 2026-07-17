@@ -96,6 +96,10 @@ export interface ExerciseSet {
   isDropset: boolean;
   description?: string;
   parentSetId?: string | null;
+  // Rest taken before this set, in seconds (derived from set timestamps).
+  // null on the first set of an exercise, on dropset drops, and on older
+  // sessions with no timing data.
+  restSeconds?: number | null;
   createdAt: string;
   updatedAt: string;
 }
