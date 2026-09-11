@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '@/api/client';
+import * as local from '@/local/splitExercises';
 import { sessionKeys } from '@/api/sessions';
 import type { SplitExercise } from '@/types';
 
@@ -11,10 +11,7 @@ export const exerciseKeys = {
 export function useExerciseNames() {
   return useQuery({
     queryKey: exerciseKeys.names,
-    queryFn: async () => {
-      const { data } = await apiClient.get<string[]>('/exercises/names');
-      return data;
-    },
+    queryFn: () => local.allExerciseNames(),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -22,30 +19,28 @@ export function useExerciseNames() {
 export function useSplitExercises(splitId: string) {
   return useQuery({
     queryKey: exerciseKeys.bySplit(splitId),
-    queryFn: async () => {
-      const { data } = await apiClient.get<SplitExercise[]>(`/splits/${splitId}/exercises`);
-      return data;
-    },
+    queryFn: () => local.listBySplit(splitId),
     enabled: !!splitId,
   });
+}
+
+function invalidateAfterChange(
+  queryClient: ReturnType<typeof useQueryClient>,
+  splitId: string,
+) {
+  void queryClient.invalidateQueries({ queryKey: exerciseKeys.bySplit(splitId) });
+  void queryClient.invalidateQueries({ queryKey: exerciseKeys.names });
+  void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
+  void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
 }
 
 export function useCreateExercise() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ splitId, ...payload }: Partial<SplitExercise> & { splitId: string }) => {
-      const { data } = await apiClient.post<SplitExercise>(
-        `/splits/${splitId}/exercises`,
-        payload,
-      );
-      return data;
-    },
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: exerciseKeys.bySplit(variables.splitId) });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
-    },
+    mutationFn: ({ splitId, ...payload }: Partial<SplitExercise> & { splitId: string }) =>
+      local.createExercise(splitId, payload),
+    onSuccess: (_data, variables) => invalidateAfterChange(queryClient, variables.splitId),
   });
 }
 
@@ -53,22 +48,13 @@ export function useUpdateExercise() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       splitId,
       id,
       ...payload
-    }: Partial<SplitExercise> & { splitId: string; id: string }) => {
-      const { data } = await apiClient.patch<SplitExercise>(
-        `/splits/${splitId}/exercises/${id}`,
-        payload,
-      );
-      return data;
-    },
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: exerciseKeys.bySplit(variables.splitId) });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
-    },
+    }: Partial<SplitExercise> & { splitId: string; id: string }) =>
+      local.updateExercise(splitId, id, payload),
+    onSuccess: (_data, variables) => invalidateAfterChange(queryClient, variables.splitId),
   });
 }
 
@@ -76,15 +62,9 @@ export function useDeleteExercise() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ splitId, id }: { splitId: string; id: string }) => {
-      await apiClient.delete(`/splits/${splitId}/exercises/${id}`);
-    },
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: exerciseKeys.bySplit(variables.splitId) });
-      // Also refresh active session so deleted exercise disappears from it
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
-    },
+    mutationFn: ({ splitId, id }: { splitId: string; id: string }) =>
+      local.deleteExercise(splitId, id),
+    onSuccess: (_data, variables) => invalidateAfterChange(queryClient, variables.splitId),
   });
 }
 
@@ -92,27 +72,11 @@ export function useReorderExercises() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      splitId,
-      orderedIds,
-    }: {
-      splitId: string;
-      orderedIds: string[];
-    }) => {
-      const exercises = orderedIds.map((id, idx) => ({
-        id,
-        displayOrder: idx + 1,
-      }));
-      const { data } = await apiClient.patch<SplitExercise[]>(
-        `/splits/${splitId}/exercises/reorder`,
-        { exercises },
-      );
-      return data;
-    },
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: exerciseKeys.bySplit(variables.splitId) });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
-    },
+    mutationFn: ({ splitId, orderedIds }: { splitId: string; orderedIds: string[] }) =>
+      local.reorderExercises(
+        splitId,
+        orderedIds.map((id, idx) => ({ id, displayOrder: idx + 1 })),
+      ),
+    onSuccess: (_data, variables) => invalidateAfterChange(queryClient, variables.splitId),
   });
 }

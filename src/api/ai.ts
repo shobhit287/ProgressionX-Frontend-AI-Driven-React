@@ -1,136 +1,74 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import apiClient from '@/api/client';
-import type { AIAnalysisResponse, SessionCoachResponse, FitnessChatResponse, SessionPlanResponse, WeeklyScheduleResponse, GeneratedDay } from '@/types';
+import * as ai from '@/local/ai/service';
 
 interface DateRange {
   startDate?: string;
   endDate?: string;
 }
 
-function toBackendDateRange(payload?: DateRange) {
-  if (!payload) return undefined;
-  const out: Record<string, string> = {};
-  if (payload.startDate) out.fromDate = payload.startDate;
-  if (payload.endDate) out.toDate = payload.endDate;
-  return out;
+function toRange(payload?: DateRange) {
+  return { fromDate: payload?.startDate, toDate: payload?.endDate };
 }
 
 export function useAnalyzeSessions() {
   return useMutation({
-    mutationFn: async (payload?: DateRange & { question?: string }) => {
-      const body = { ...toBackendDateRange(payload), question: payload?.question };
-      const { data } = await apiClient.post<AIAnalysisResponse>(
-        '/ai/analyze-sessions',
-        body,
-      );
-      return data;
-    },
+    mutationFn: (payload?: DateRange & { question?: string }) =>
+      ai.analyzeSessions({ ...toRange(payload), question: payload?.question }),
   });
 }
 
 export function useAnalyzeExercise() {
   return useMutation({
-    mutationFn: async (payload: { exerciseName: string; question?: string } & DateRange) => {
-      const body = {
-        exerciseName: payload.exerciseName,
-        question: payload.question,
-        ...toBackendDateRange(payload),
-      };
-      const { data } = await apiClient.post<AIAnalysisResponse>(
-        '/ai/analyze-exercise',
-        body,
-      );
-      return data;
-    },
+    mutationFn: (payload: { exerciseName: string; question?: string } & DateRange) =>
+      ai.analyzeExercise({ ...toRange(payload), exerciseName: payload.exerciseName, question: payload.question }),
   });
 }
 
 export function useAnalyzeWeight() {
   return useMutation({
-    mutationFn: async (payload?: DateRange & { question?: string }) => {
-      const body = { ...toBackendDateRange(payload), question: payload?.question };
-      const { data } = await apiClient.post<AIAnalysisResponse>(
-        '/ai/analyze-weight',
-        body,
-      );
-      return data;
-    },
+    mutationFn: (payload?: DateRange & { question?: string }) =>
+      ai.analyzeWeight({ ...toRange(payload), question: payload?.question }),
   });
 }
 
 export function useAnalyzeSplit() {
   return useMutation({
-    mutationFn: async (payload: { question: string }) => {
-      const { data } = await apiClient.post<AIAnalysisResponse>(
-        '/ai/analyze-split',
-        payload,
-      );
-      return data;
-    },
+    mutationFn: (payload: { question: string }) => ai.analyzeSplit(payload.question),
   });
 }
 
 export function useFitnessChat() {
   return useMutation({
-    mutationFn: async (payload: {
-      question: string;
-      history: { role: string; content: string }[];
-    }) => {
-      const { data } = await apiClient.post<FitnessChatResponse>(
-        '/ai/chat',
-        payload,
-      );
-      return data;
-    },
+    mutationFn: (payload: { question: string; history: { role: string; content: string }[] }) =>
+      ai.fitnessChat(payload.question, payload.history),
   });
 }
 
 export function useSessionCoach() {
   return useMutation({
-    mutationFn: async (payload: { sessionId: string; question: string }) => {
-      const { data } = await apiClient.post<SessionCoachResponse>(
-        '/ai/session-coach',
-        payload,
-      );
-      return data;
-    },
+    mutationFn: (payload: { sessionId: string; question: string }) =>
+      ai.sessionCoach(payload.sessionId, payload.question),
   });
 }
 
 export function useGenerateWeeklySchedule() {
   return useMutation({
-    mutationFn: async (payload?: { preferences?: string }) => {
-      const { data } = await apiClient.post<WeeklyScheduleResponse>(
-        '/ai/generate-weekly-schedule',
-        payload || {},
-      );
-      return data;
-    },
+    mutationFn: (payload?: { preferences?: string }) =>
+      ai.generateWeeklySchedule(payload?.preferences || undefined),
   });
 }
 
 export function useCustomizeSplit() {
   return useMutation({
-    mutationFn: async (payload: { splitId: string; preferences?: string }) => {
-      const { data } = await apiClient.post<GeneratedDay>(
-        '/ai/customize-split',
-        payload,
-      );
-      return data;
-    },
+    mutationFn: (payload: { splitId: string; preferences?: string }) =>
+      ai.customizeSplit(payload.splitId, payload.preferences || undefined),
   });
 }
 
 export function useSessionPlan(sessionId: string) {
   return useQuery({
     queryKey: ['session-plan', sessionId],
-    queryFn: async () => {
-      const { data } = await apiClient.post<SessionPlanResponse>(
-        '/ai/session-plan',
-        { sessionId },
-      );
-      return data;
-    },
+    queryFn: () => ai.generateSessionPlan(sessionId),
     enabled: !!sessionId,
     staleTime: 10 * 60 * 1000, // cache for 10 minutes — plan doesn't change mid-session
     retry: 1,

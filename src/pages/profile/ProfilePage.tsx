@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useCurrentUser, useUpdateProfile, useChangePassword } from '@/api/auth';
+import { Link } from 'react-router-dom';
+import { useCurrentUser, useUpdateProfile } from '@/api/auth';
+import { DEFAULT_MODEL, getGroqApiKey, getGroqModel, setGroqApiKey, setGroqModel } from '@/local/ai/groq';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { User, Lock, Check, AlertCircle } from 'lucide-react';
+import { User, KeyRound, Check, AlertCircle, DatabaseBackup, ExternalLink } from 'lucide-react';
 import type { TrainingType, ExperienceLevel } from '@/types';
 
 const TRAINING_TYPES: { value: TrainingType; label: string }[] = [
@@ -22,7 +24,6 @@ const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
 export default function ProfilePage() {
   const { data: user, isLoading } = useCurrentUser();
   const updateProfile = useUpdateProfile();
-  const changePassword = useChangePassword();
 
   // Profile form state
   const [firstName, setFirstName] = useState('');
@@ -34,12 +35,10 @@ export default function ProfilePage() {
   const [activityLevel, setActivityLevel] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
 
-  // Password form state
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordSaved, setPasswordSaved] = useState(false);
+  // AI settings (kept in localStorage, never in backups)
+  const [apiKey, setApiKey] = useState(() => getGroqApiKey());
+  const [model, setModel] = useState(() => getGroqModel());
+  const [aiSaved, setAiSaved] = useState(false);
 
   // Populate form when user loads
   useEffect(() => {
@@ -70,39 +69,11 @@ export default function ProfilePage() {
     );
   };
 
-  const handleChangePassword = () => {
-    setPasswordError('');
-    setPasswordSaved(false);
-
-    if (!oldPassword) {
-      setPasswordError('Enter your current password');
-      return;
-    }
-    if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
-      return;
-    }
-
-    changePassword.mutate(
-      { oldPassword, newPassword },
-      {
-        onSuccess: () => {
-          setOldPassword('');
-          setNewPassword('');
-          setConfirmPassword('');
-          setPasswordSaved(true);
-          setTimeout(() => setPasswordSaved(false), 3000);
-        },
-        onError: (err: any) => {
-          const msg = err?.response?.data?.detail || 'Failed to change password';
-          setPasswordError(msg);
-        },
-      },
-    );
+  const handleSaveAi = () => {
+    setGroqApiKey(apiKey);
+    setGroqModel(model);
+    setAiSaved(true);
+    setTimeout(() => setAiSaved(false), 3000);
   };
 
   if (isLoading) {
@@ -128,10 +99,10 @@ export default function ProfilePage() {
               <User className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-text font-medium text-sm">{user?.email}</p>
-              {user?.mobileNumber && (
-                <p className="text-text-muted text-xs">{user.mobileNumber}</p>
-              )}
+              <p className="text-text font-medium text-sm">
+                {user?.email || `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()}
+              </p>
+              <p className="text-text-muted text-xs">Stored on this device only</p>
             </div>
           </div>
         </div>
@@ -249,69 +220,75 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* Change password */}
+      {/* AI settings */}
       <Card className="p-4">
         <div className="flex items-center gap-2 mb-4">
-          <Lock className="w-4 h-4 text-text-muted" />
+          <KeyRound className="w-4 h-4 text-text-muted" />
           <p className="text-text-muted text-xs uppercase tracking-wide font-medium">
-            Change Password
+            AI Coach (Groq)
           </p>
         </div>
         <div className="space-y-3">
+          <p className="text-xs text-text-muted">
+            AI analysis, session plans, the coach and diet chat call Groq directly from this
+            device with your own key. Everything else works without it.{' '}
+            <a
+              href="https://console.groq.com/keys"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-primary"
+            >
+              Get a free key <ExternalLink size={12} />
+            </a>
+          </p>
+
           <div>
-            <label className="text-xs text-text-muted mb-1 block">Current Password</label>
+            <label className="text-xs text-text-muted mb-1 block">API key</label>
             <input
               type="password"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              placeholder="Enter current password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="gsk_…"
+              autoComplete="off"
               className="w-full h-11 rounded-lg bg-background border border-border px-3 text-text text-sm placeholder:text-surface-light focus:border-primary outline-none"
             />
           </div>
 
           <div>
-            <label className="text-xs text-text-muted mb-1 block">New Password</label>
+            <label className="text-xs text-text-muted mb-1 block">Model</label>
             <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Min 8 characters"
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder={DEFAULT_MODEL}
               className="w-full h-11 rounded-lg bg-background border border-border px-3 text-text text-sm placeholder:text-surface-light focus:border-primary outline-none"
             />
           </div>
 
-          <div>
-            <label className="text-xs text-text-muted mb-1 block">Confirm New Password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter new password"
-              className="w-full h-11 rounded-lg bg-background border border-border px-3 text-text text-sm placeholder:text-surface-light focus:border-primary outline-none"
-            />
-          </div>
-
-          {passwordError && (
-            <div className="flex items-center gap-2 text-danger text-sm">
-              <AlertCircle className="w-4 h-4" /> {passwordError}
-            </div>
-          )}
-
-          {passwordSaved && (
+          {aiSaved && (
             <div className="flex items-center gap-2 text-success text-sm">
-              <Check className="w-4 h-4" /> Password changed successfully
+              <Check className="w-4 h-4" /> AI settings saved
             </div>
           )}
 
-          <Button
-            variant="primary"
-            className="w-full"
-            loading={changePassword.isPending}
-            onClick={handleChangePassword}
-          >
-            Update Password
+          <Button variant="primary" className="w-full" onClick={handleSaveAi}>
+            Save AI Settings
           </Button>
         </div>
+      </Card>
+
+      {/* Backup shortcut */}
+      <Card className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <DatabaseBackup className="w-4 h-4 text-text-muted" />
+          <p className="text-text-muted text-xs uppercase tracking-wide font-medium">Your data</p>
+        </div>
+        <p className="text-xs text-text-muted mb-3">
+          Everything lives in this phone's browser storage. Download a backup regularly.
+        </p>
+        <Link to="/export">
+          <Button variant="secondary" className="w-full">Backup &amp; Restore</Button>
+        </Link>
       </Card>
     </div>
   );

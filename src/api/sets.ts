@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '@/api/client';
+import * as sessionsLocal from '@/local/sessions';
+import * as local from '@/local/sets';
 import { sessionKeys } from '@/api/sessions';
-import type { ExerciseSet } from '@/types';
 
 // Previous session sets — keyed by lowercased exercise name.
 export interface PreviousSetData {
@@ -21,22 +21,23 @@ export type PreviousSetsMap = Record<string, PreviousSetData[]>;
 export function usePreviousSets(sessionId: string) {
   return useQuery({
     queryKey: ['previous-sets', sessionId],
-    queryFn: async () => {
-      const { data } = await apiClient.get<PreviousSetsMap>(
-        `/sessions/${sessionId}/previous-sets`,
-      );
-      return data;
-    },
+    queryFn: () => sessionsLocal.previousSetsMap(sessionId),
     enabled: !!sessionId,
     staleTime: 5 * 60 * 1000,
   });
+}
+
+function invalidateSession(queryClient: ReturnType<typeof useQueryClient>, sessionId: string) {
+  void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) });
+  void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
+  void queryClient.invalidateQueries({ queryKey: ['analytics'] });
 }
 
 export function useAddSet() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       sessionId,
       exerciseId,
       ...payload
@@ -50,17 +51,8 @@ export function useAddSet() {
       isDropset?: boolean;
       description?: string;
       parentSetId?: string;
-    }) => {
-      const { data } = await apiClient.post<ExerciseSet>(
-        `/sessions/${sessionId}/exercises/${exerciseId}/sets`,
-        payload,
-      );
-      return data;
-    },
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
-    },
+    }) => local.addSet(sessionId, exerciseId, payload),
+    onSuccess: (_data, variables) => invalidateSession(queryClient, variables.sessionId),
   });
 }
 
@@ -68,12 +60,9 @@ export function useUpdateSet() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      sessionId,
-      exerciseId,
-      setId,
-      ...payload
-    }: {
+    // `exerciseId` stays in the signature for the callers; the local
+    // service only needs the set id.
+    mutationFn: (vars: {
       sessionId: string;
       exerciseId: string;
       setId: string;
@@ -83,17 +72,16 @@ export function useUpdateSet() {
       isWarmup?: boolean;
       isDropset?: boolean;
       description?: string;
-    }) => {
-      const { data } = await apiClient.patch<ExerciseSet>(
-        `/sessions/${sessionId}/sets/${setId}`,
-        payload,
-      );
-      return data;
-    },
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
-    },
+    }) =>
+      local.updateSet(vars.sessionId, vars.setId, {
+        weightKg: vars.weightKg,
+        reps: vars.reps,
+        repsInReserve: vars.repsInReserve,
+        isWarmup: vars.isWarmup,
+        isDropset: vars.isDropset,
+        description: vars.description,
+      }),
+    onSuccess: (_data, variables) => invalidateSession(queryClient, variables.sessionId),
   });
 }
 
@@ -101,20 +89,8 @@ export function useDeleteSet() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      sessionId,
-      setId,
-    }: {
-      sessionId: string;
-      setId: string;
-    }) => {
-      await apiClient.delete(
-        `/sessions/${sessionId}/sets/${setId}`,
-      );
-    },
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) });
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
-    },
+    mutationFn: ({ sessionId, setId }: { sessionId: string; setId: string }) =>
+      local.deleteSet(sessionId, setId),
+    onSuccess: (_data, variables) => invalidateSession(queryClient, variables.sessionId),
   });
 }

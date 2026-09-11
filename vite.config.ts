@@ -1,10 +1,17 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // Set VITE_BASE_PATH when hosting under a sub-path (GitHub Pages project
+  // site → '/<repo-name>/'). Root hosting (Cloudflare/Netlify/Vercel) → '/'.
+  const env = loadEnv(mode, process.cwd(), '')
+  const base = env.VITE_BASE_PATH || '/'
+
+  return {
+  base,
   plugins: [
     react(),
     tailwindcss(),
@@ -16,16 +23,16 @@ export default defineConfig({
         type: 'module'
       },
       manifest: {
-        id: '/',
+        id: base,
         name: 'ProgressionX',
         short_name: 'ProgressionX',
-        description: 'AI-Powered Gym Performance Tracker',
+        description: 'Offline gym performance tracker',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        scope: base,
+        start_url: base,
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -58,19 +65,8 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        runtimeCaching: [
-          {
-            urlPattern: /^https?:\/\/.*\/api\/v1\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60,
-              },
-            },
-          },
-        ],
+        // SPA fallback so deep links (/session/abc) resolve offline.
+        navigateFallback: `${base}index.html`,
       },
     }),
   ],
@@ -85,4 +81,5 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   }
+}
 })

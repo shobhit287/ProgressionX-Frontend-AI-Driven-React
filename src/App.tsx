@@ -1,14 +1,11 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, keepPreviousData } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
-import AuthGuard from '@/components/AuthGuard';
-import AdminGuard from '@/components/AdminGuard';
-import GuestGuard from '@/components/GuestGuard';
+import SetupGuard from '@/components/SetupGuard';
 import { lazy, Suspense } from 'react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
-const LoginPage = lazy(() => import('@/pages/auth/Login'));
-const SignupPage = lazy(() => import('@/pages/auth/Signup'));
+const SetupPage = lazy(() => import('@/pages/setup/SetupPage'));
 const DashboardPage = lazy(() => import('@/pages/dashboard/Dashboard'));
 const SplitListPage = lazy(() => import('@/pages/splits/SplitList'));
 const SplitDetailPage = lazy(() => import('@/pages/splits/SplitDetail'));
@@ -19,12 +16,8 @@ const WeightPage = lazy(() => import('@/pages/weight/WeightPage'));
 const AIPage = lazy(() => import('@/pages/ai/AIPage'));
 const AskPage = lazy(() => import('@/pages/ask/AskPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
-const CompleteProfilePage = lazy(() => import('@/pages/profile/CompleteProfile'));
 const DietPage = lazy(() => import('@/pages/diet/DietPage'));
-const ExportPage = lazy(() => import('@/pages/export/ExportPage'));
-const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboard'));
-const PrivacyPolicyPage = lazy(() => import('@/pages/legal/PrivacyPolicy'));
-const TermsOfServicePage = lazy(() => import('@/pages/legal/TermsOfService'));
+const BackupPage = lazy(() => import('@/pages/export/ExportPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,32 +41,14 @@ function PageFallback() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Suspense fallback={<PageFallback />}>
           <Routes>
-            {/* Auth routes — redirect away to the dashboard if the user is
-                already signed in, so /login and /signup never double up on an
-                authenticated session. */}
-            <Route element={<GuestGuard />}>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-            </Route>
+            {/* First-run: restore a backup or create a profile. Outside
+                Layout — it's a full-screen blocking form. */}
+            <Route path="/setup" element={<SetupPage />} />
 
-            {/* Public legal pages — reachable without auth so Google's OAuth
-                consent screen crawler and anonymous visitors can view them */}
-            <Route path="/privacy" element={<PrivacyPolicyPage />} />
-            <Route path="/terms" element={<TermsOfServicePage />} />
-
-            {/* Superadmin routes */}
-            <Route element={<AdminGuard />}>
-              <Route path="/superadmin" element={<AdminDashboardPage />} />
-            </Route>
-
-            {/* Normal user routes */}
-            <Route element={<AuthGuard />}>
-              {/* Profile-completion is outside Layout — it's a full-screen
-                  blocking form that shows before the user can use the app */}
-              <Route path="/profile/complete" element={<CompleteProfilePage />} />
+            <Route element={<SetupGuard />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/splits" element={<SplitListPage />} />
@@ -86,7 +61,7 @@ export default function App() {
                 <Route path="/ask" element={<AskPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/diet" element={<DietPage />} />
-                <Route path="/export" element={<ExportPage />} />
+                <Route path="/export" element={<BackupPage />} />
               </Route>
             </Route>
           </Routes>

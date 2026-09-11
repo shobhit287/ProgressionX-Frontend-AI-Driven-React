@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import apiClient from '@/api/client';
-import type { DashboardSummary, ExerciseDataPoint, SessionDataPoint } from '@/types';
+import * as local from '@/local/analytics';
 
 export const analyticsKeys = {
   sessions: (filters?: AnalyticsFilters) => ['analytics', 'sessions', filters] as const,
@@ -15,52 +14,25 @@ interface AnalyticsFilters {
   splitId?: string;
 }
 
-function toBackendParams(filters?: AnalyticsFilters) {
-  if (!filters) return undefined;
-  const params: Record<string, string> = {};
-  if (filters.startDate) params.fromDate = filters.startDate;
-  if (filters.endDate) params.toDate = filters.endDate;
-  if (filters.splitId) params.splitId = filters.splitId;
-  return params;
-}
-
-interface SessionAnalyticsResponse {
-  sessions: SessionDataPoint[];
-}
-
-interface ExerciseAnalyticsResponse {
-  dataPoints: ExerciseDataPoint[];
-  personalRecord?: {
-    weight: number;
-    reps: number;
-    estimated1Rm: number;
-    date: string;
-  } | null;
+function toRange(filters?: AnalyticsFilters): local.AnalyticsRange {
+  return {
+    fromDate: filters?.startDate,
+    toDate: filters?.endDate,
+    splitId: filters?.splitId,
+  };
 }
 
 export function useSessionAnalytics(filters?: AnalyticsFilters) {
   return useQuery({
     queryKey: analyticsKeys.sessions(filters),
-    queryFn: async () => {
-      const { data } = await apiClient.get<SessionAnalyticsResponse>(
-        '/analytics/sessions',
-        { params: toBackendParams(filters) },
-      );
-      return data.sessions ?? [];
-    },
+    queryFn: () => local.sessionAnalytics(toRange(filters)),
   });
 }
 
 export function useExerciseAnalytics(exerciseName: string, filters?: AnalyticsFilters) {
   return useQuery({
     queryKey: analyticsKeys.exercise(exerciseName, filters),
-    queryFn: async () => {
-      const { data } = await apiClient.get<ExerciseAnalyticsResponse>(
-        `/analytics/exercises/${encodeURIComponent(exerciseName)}`,
-        { params: toBackendParams(filters) },
-      );
-      return data.dataPoints ?? [];
-    },
+    queryFn: async () => (await local.exerciseAnalytics(exerciseName, toRange(filters))).dataPoints,
     enabled: !!exerciseName,
   });
 }
@@ -68,9 +40,6 @@ export function useExerciseAnalytics(exerciseName: string, filters?: AnalyticsFi
 export function useDashboardSummary() {
   return useQuery({
     queryKey: analyticsKeys.dashboard,
-    queryFn: async () => {
-      const { data } = await apiClient.get<DashboardSummary>('/analytics/summary');
-      return data;
-    },
+    queryFn: () => local.dashboardSummary(),
   });
 }

@@ -1,11 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '@/api/client';
-import type {
-  PaginatedResponse,
-  SessionDateItem,
-  WorkoutSession,
-  WorkoutSessionDetail,
-} from '@/types';
+import * as local from '@/local/sessions';
 
 export const sessionKeys = {
   all: ['sessions'] as const,
@@ -27,10 +21,7 @@ interface SessionFilters {
 export function useActiveSession() {
   return useQuery({
     queryKey: sessionKeys.active,
-    queryFn: async () => {
-      const { data } = await apiClient.get<WorkoutSessionDetail>('/sessions/active');
-      return data;
-    },
+    queryFn: () => local.getActiveSession(),
     retry: false,
   });
 }
@@ -38,13 +29,7 @@ export function useActiveSession() {
 export function useSessions(filters?: SessionFilters | null) {
   return useQuery({
     queryKey: [...sessionKeys.all, filters],
-    queryFn: async () => {
-      const { data } = await apiClient.get<PaginatedResponse<WorkoutSession>>(
-        '/sessions',
-        { params: filters ?? undefined },
-      );
-      return data;
-    },
+    queryFn: () => local.listSessions(filters ?? {}),
     enabled: filters !== undefined && filters !== null,
   });
 }
@@ -52,12 +37,7 @@ export function useSessions(filters?: SessionFilters | null) {
 export function useSessionDatesBySplit(splitId: string, limit = 500) {
   return useQuery({
     queryKey: sessionKeys.datesBySplit(splitId),
-    queryFn: async () => {
-      const { data } = await apiClient.get<SessionDateItem[]>('/sessions/dates', {
-        params: { splitId, limit },
-      });
-      return data;
-    },
+    queryFn: () => local.sessionDatesBySplit(splitId, limit),
     enabled: !!splitId,
   });
 }
@@ -65,10 +45,7 @@ export function useSessionDatesBySplit(splitId: string, limit = 500) {
 export function useSession(id: string) {
   return useQuery({
     queryKey: sessionKeys.detail(id),
-    queryFn: async () => {
-      const { data } = await apiClient.get<WorkoutSessionDetail>(`/sessions/${id}`);
-      return data;
-    },
+    queryFn: () => local.getSession(id),
     enabled: !!id,
   });
 }
@@ -78,12 +55,7 @@ export function useSession(id: string) {
 export function usePreviousSession(id: string) {
   return useQuery({
     queryKey: sessionKeys.previous(id),
-    queryFn: async () => {
-      const { data } = await apiClient.get<WorkoutSessionDetail | null>(
-        `/sessions/${id}/previous-session`,
-      );
-      return data;
-    },
+    queryFn: () => local.getPreviousSession(id),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
   });
@@ -93,13 +65,7 @@ export function useStartSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: { splitId: string }) => {
-      const { data } = await apiClient.post<WorkoutSessionDetail>(
-        '/sessions/start',
-        payload,
-      );
-      return data;
-    },
+    mutationFn: (payload: { splitId: string }) => local.startSession(payload.splitId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
       void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
@@ -115,13 +81,8 @@ export function useBackfillSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: { splitId: string; date: string }) => {
-      const { data } = await apiClient.post<WorkoutSessionDetail>(
-        '/sessions/backfill',
-        payload,
-      );
-      return data;
-    },
+    mutationFn: (payload: { splitId: string; date: string }) =>
+      local.backfillSession(payload.splitId, payload.date),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
     },
@@ -132,18 +93,14 @@ export function useCompleteSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
-      const { data } = await apiClient.patch<WorkoutSession>(
-        `/sessions/${id}/complete`,
-        notes ? { notes } : undefined,
-      );
-      return data;
-    },
+    mutationFn: ({ id, notes }: { id: string; notes?: string }) =>
+      local.completeSession(id, notes || undefined),
     onSuccess: async (_data, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: sessionKeys.all }),
         queryClient.invalidateQueries({ queryKey: sessionKeys.active }),
         queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.id) }),
+        queryClient.invalidateQueries({ queryKey: ['analytics'] }),
       ]);
     },
   });
@@ -153,10 +110,7 @@ export function useAbandonSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { data } = await apiClient.patch<WorkoutSession>(`/sessions/${id}/abandon`);
-      return data;
-    },
+    mutationFn: (id: string) => local.abandonSession(id),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
       void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
@@ -166,20 +120,18 @@ export function useAbandonSession() {
 }
 
 /** Restore a same-day session to in-progress after an accidental
- *  abandon / complete. Backend enforces the same-day + single-active
- *  guards. */
+ *  abandon / complete. Same-day + single-active guards are enforced in
+ *  the local service. */
 export function useReopenSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { data } = await apiClient.patch<WorkoutSession>(`/sessions/${id}/reopen`);
-      return data;
-    },
+    mutationFn: (id: string) => local.reopenSession(id),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
       void queryClient.invalidateQueries({ queryKey: sessionKeys.active });
       void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables) });
+      void queryClient.invalidateQueries({ queryKey: ['analytics'] });
     },
   });
 }

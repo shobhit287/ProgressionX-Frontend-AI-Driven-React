@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSession, useSessions, useSessionDatesBySplit } from '@/api/sessions';
 import { useSplits } from '@/api/splits';
-import { useExportWorkoutHistory } from '@/api/export';
 import RestDivider from '@/components/RestDivider';
 import type { WorkoutSessionDetail, WorkoutSplit } from '@/types';
 import { capitalize, formatDate, formatDuration, formatWeight } from '@/utils/format';
@@ -11,12 +10,9 @@ import {
   Clock,
   Dumbbell,
   Flame,
-  Loader2,
-  Mail,
-  Send,
 } from 'lucide-react';
 
-type Mode = 'date' | 'split' | 'export';
+type Mode = 'date' | 'split';
 
 const DAYS_ORDER = [
   'monday',
@@ -106,14 +102,6 @@ export default function SessionHistory() {
           }`}
         >
           By Split
-        </button>
-        <button
-          onClick={() => switchMode('export')}
-          className={`flex-1 h-10 rounded-lg text-sm font-semibold transition-colors touch-manipulation ${
-            mode === 'export' ? 'bg-primary text-white' : 'text-text-muted'
-          }`}
-        >
-          Export
         </button>
       </div>
 
@@ -214,11 +202,8 @@ export default function SessionHistory() {
         </div>
       )}
 
-      {mode === 'export' && <ExportPanel splits={sortedSplits} />}
-
-      {/* Results — only the browse modes render the detail card */}
-      {mode !== 'export' && (
-        <div>
+      {/* Results */}
+      <div>
           {mode === 'date' && !selectedDate && (
             <EmptyHint>Select a date to view that day's session.</EmptyHint>
           )}
@@ -244,173 +229,6 @@ export default function SessionHistory() {
           {detailId && !detailLoading && sessionDetail && (
             <SessionDetailCard session={sessionDetail} splits={splits ?? []} />
           )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Export panel — workout-history-only export. Split + start + end    */
-/*  are all required; PDF is queued via background task and emailed.   */
-/* ------------------------------------------------------------------ */
-function ExportPanel({ splits }: { splits: WorkoutSplit[] }) {
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
-
-  const [splitId, setSplitId] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const exportHistory = useExportWorkoutHistory();
-
-  const allFilled = !!splitId && !!startDate && !!endDate;
-  const datesValid = !startDate || !endDate || startDate <= endDate;
-  const canSubmit = allFilled && datesValid && !exportHistory.isPending;
-
-  const handleSubmit = async () => {
-    setError(null);
-    setSuccess(null);
-    if (!splitId) {
-      setError('Please pick a split.');
-      return;
-    }
-    if (!startDate || !endDate) {
-      setError('Start date and end date are required.');
-      return;
-    }
-    if (startDate > endDate) {
-      setError('End date must be on or after start date.');
-      return;
-    }
-    try {
-      // "ALL" sentinel → omit splitId so the backend exports across every
-      // split the user trained on in this range.
-      const result = await exportHistory.mutateAsync({
-        splitId: splitId === 'ALL' ? undefined : splitId,
-        startDate,
-        endDate,
-      });
-      setSuccess(result.message);
-    } catch (e) {
-      const err = e as { userMessage?: string; message?: string };
-      setError(err.userMessage || err.message || 'Failed to queue report.');
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-text-muted">
-        Export every set, rep, RIR, and drop set from a chosen split over a
-        date range. We'll email you a detailed PDF — focused only on workout
-        history, with a short performance summary at the end.
-      </p>
-
-      <div className="space-y-4 rounded-2xl bg-surface border border-border p-4">
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-text-muted mb-1.5">
-            Split <span className="text-rose-400">*</span>
-          </label>
-          <select
-            value={splitId}
-            onChange={(e) => setSplitId(e.target.value)}
-            className={`w-full h-12 rounded-xl bg-background border border-border px-3 text-base focus:border-primary outline-none ${
-              splitId ? 'text-text' : 'text-text-muted'
-            }`}
-          >
-            <option value="">— Select a split —</option>
-            <option value="ALL">All sessions (every split)</option>
-            {splits.map((s) => (
-              <option key={s.id} value={s.id}>
-                {capitalize(s.day)} — {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-text-muted mb-1.5">
-              Start date <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              max={endDate || today}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={{ colorScheme: 'dark' }}
-              className={`w-full h-12 rounded-xl bg-background border border-border px-3 text-base focus:border-primary outline-none ${
-                startDate ? 'text-text' : 'text-text-muted'
-              }`}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-text-muted mb-1.5">
-              End date <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              min={startDate || undefined}
-              max={today}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={{ colorScheme: 'dark' }}
-              className={`w-full h-12 rounded-xl bg-background border border-border px-3 text-base focus:border-primary outline-none ${
-                endDate ? 'text-text' : 'text-text-muted'
-              }`}
-            />
-          </div>
-        </div>
-
-        {error && (
-          <div className="rounded-lg bg-rose-500/10 border border-rose-500/30 px-3 py-2 text-sm text-rose-300">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-3 text-sm text-emerald-200 flex items-start gap-2">
-            <Mail size={18} className="mt-0.5 shrink-0" />
-            <span>{success}</span>
-          </div>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 active:bg-primary/80 disabled:bg-surface-light disabled:text-text-muted text-white font-semibold flex items-center justify-center gap-2 transition-colors touch-manipulation"
-        >
-          {exportHistory.isPending ? (
-            <>
-              <Loader2 size={20} className="animate-spin" />
-              Queuing report…
-            </>
-          ) : (
-            <>
-              <Send size={20} />
-              Email me the PDF
-            </>
-          )}
-        </button>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-background/40 p-4 text-xs text-text-muted">
-        <p className="font-semibold text-text mb-1">What's inside</p>
-        <ul className="list-disc pl-5 space-y-0.5">
-          <li>At-a-glance counts: sessions, sets, reps, total volume</li>
-          <li>
-            <strong>Per-session detail</strong> — every exercise, every set,
-            with weight, reps, RIR, rest between sets, drop sets, warm-ups,
-            supersets, and notes
-          </li>
-          <li>Short AI performance summary, highlights, and suggestions at the end</li>
-        </ul>
-        <p className="mt-2 text-text-muted">
-          Looking for a wider analytics report (weight trend, nutrition,
-          split planning)? Use the dedicated{' '}
-          <span className="text-text">Export</span> page from the bottom nav.
-        </p>
       </div>
     </div>
   );

@@ -1,184 +1,175 @@
-import { useMemo, useState } from 'react';
-import { FileText, Loader2, Mail, Send } from 'lucide-react';
-import { useExportFilters, useExportPdf } from '@/api/export';
+import { useRef, useState } from 'react';
+import { AlertCircle, Check, DatabaseBackup, Download, ShieldCheck, ShieldAlert, Upload } from 'lucide-react';
+import {
+  useDownloadBackup,
+  useRequestPersistentStorage,
+  useRestoreBackup,
+  useStoragePersisted,
+} from '@/api/export';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 
-export default function ExportPage() {
-  const { data: filters, isLoading: filtersLoading } = useExportFilters();
-  const exportPdf = useExportPdf();
+/** Backup & restore. Everything lives in this phone's browser storage, so a
+ *  downloaded JSON file is the only copy that survives a lost phone or a
+ *  "clear site data" tap. */
+export default function BackupPage() {
+  const download = useDownloadBackup();
+  const restore = useRestoreBackup();
+  const { data: persisted } = useStoragePersisted();
+  const requestPersist = useRequestPersistentStorage();
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().slice(0, 10);
-  }, []);
-
-  const [startDate, setStartDate] = useState(monthAgo);
-  const [endDate, setEndDate] = useState(today);
-  const [splitId, setSplitId] = useState('');
-  const [exerciseName, setExerciseName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [confirmRestore, setConfirmRestore] = useState<File | null>(null);
 
-  // When a split is selected we don't currently filter exercise list to that split
-  // (backend doesn't expose it scoped). Show all exercises across the user's splits.
-  const exercises = filters?.exercises ?? [];
-  const splits = filters?.splits ?? [];
-
-  const datesValid = !!startDate && !!endDate && startDate <= endDate;
-
-  const handleSubmit = async () => {
+  const handleDownload = async () => {
     setError(null);
-    setSuccessMsg(null);
-    if (!startDate || !endDate) {
-      setError('Start date and end date are required.');
-      return;
-    }
-    if (startDate > endDate) {
-      setError('End date must be on or after start date.');
-      return;
-    }
-
+    setSuccess(null);
     try {
-      const result = await exportPdf.mutateAsync({
-        startDate,
-        endDate,
-        splitId: splitId || undefined,
-        exerciseName: exerciseName || undefined,
-      });
-      setSuccessMsg(result.message);
+      const data = await download.mutateAsync();
+      setSuccess(
+        `Saved ${data.sessions.length} sessions, ${data.sets.length} sets and ${data.weightLogs.length} weight logs.`,
+      );
+    } catch (e) {
+      setError((e as Error).message || 'Could not create the backup.');
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!confirmRestore) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      const summary = await restore.mutateAsync(confirmRestore);
+      setSuccess(
+        `Restored ${summary.sessions} sessions, ${summary.sets} sets, ${summary.splits} splits and ${summary.weightLogs} weight logs.`,
+      );
     } catch (e) {
       const err = e as { userMessage?: string; message?: string };
-      setError(err.userMessage || err.message || 'Failed to queue report.');
+      setError(err.userMessage || err.message || 'Could not restore that file.');
+    } finally {
+      setConfirmRestore(null);
+      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <FileText className="text-[#6366f1]" size={26} />
-        <h1 className="text-2xl font-bold">Export Report</h1>
+        <DatabaseBackup className="text-[#6366f1]" size={26} />
+        <h1 className="text-2xl font-bold">Backup & Restore</h1>
       </div>
 
-      <p className="text-sm text-[#94a3b8]">
-        Generate a PDF performance report with metrics, charts, and an AI-written
-        summary &amp; suggestions. We'll email it to your registered address once
-        it's ready.
+      <p className="text-sm text-text-muted">
+        Your data is stored only on this device. Download a backup now and then, and keep it
+        somewhere safe (Drive, email to yourself, a PC).
       </p>
 
-      <div className="space-y-4 rounded-2xl border border-[#334155] bg-[#1e293b] p-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="min-w-0">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-[#94a3b8] mb-1.5">
-              Start date <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              max={endDate || undefined}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="block w-full min-w-0 h-11 rounded-xl bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] focus:border-[#6366f1] outline-none appearance-none"
-            />
-          </div>
-          <div className="min-w-0">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-[#94a3b8] mb-1.5">
-              End date <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              min={startDate || undefined}
-              max={today}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="block w-full min-w-0 h-11 rounded-xl bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] focus:border-[#6366f1] outline-none appearance-none"
-            />
-          </div>
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
         </div>
-
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#94a3b8] mb-1.5">
-            Split (optional)
-          </label>
-          <select
-            value={splitId}
-            onChange={(e) => setSplitId(e.target.value)}
-            disabled={filtersLoading}
-            className="w-full h-11 rounded-xl bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] focus:border-[#6366f1] outline-none"
-          >
-            <option value="">All splits</option>
-            {splits.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.day.charAt(0).toUpperCase() + s.day.slice(1)} — {s.name}
-              </option>
-            ))}
-          </select>
+      )}
+      {success && (
+        <div className="flex items-start gap-2 rounded-lg border border-success/40 bg-success/10 p-3 text-sm text-success">
+          <Check size={16} className="mt-0.5 shrink-0" />
+          <span>{success}</span>
         </div>
+      )}
 
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#94a3b8] mb-1.5">
-            Exercise (optional)
-          </label>
-          <select
-            value={exerciseName}
-            onChange={(e) => setExerciseName(e.target.value)}
-            disabled={filtersLoading}
-            className="w-full h-11 rounded-xl bg-[#0f172a] border border-[#334155] px-3 text-[#f1f5f9] focus:border-[#6366f1] outline-none"
-          >
-            <option value="">All exercises (overall metrics)</option>
-            {exercises.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-[#64748b]">
-            Pick an exercise to focus the report on its progression instead of
-            overall metrics.
-          </p>
+      <Card className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Download size={18} className="text-primary" />
+          <p className="font-semibold">Download backup</p>
         </div>
+        <p className="text-sm text-text-muted">
+          One JSON file with your profile, splits, every session and set, weight logs and diet plan.
+          Your AI key is <span className="text-text">not</span> included.
+        </p>
+        <Button className="w-full" loading={download.isPending} onClick={() => void handleDownload()}>
+          <Download size={16} /> Download backup
+        </Button>
+      </Card>
 
-        {error && (
-          <div className="rounded-lg bg-rose-500/10 border border-rose-500/30 px-3 py-2 text-sm text-rose-300">
-            {error}
+      <Card className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Upload size={18} className="text-primary" />
+          <p className="font-semibold">Restore from backup</p>
+        </div>
+        <p className="text-sm text-text-muted">
+          Replaces <span className="text-text">everything</span> on this device with the file's contents.
+        </p>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) setConfirmRestore(f);
+          }}
+        />
+        {!confirmRestore ? (
+          <Button variant="secondary" className="w-full" onClick={() => fileRef.current?.click()}>
+            Choose backup file
+          </Button>
+        ) : (
+          <div className="space-y-2 rounded-lg border border-border bg-background p-3">
+            <p className="text-sm">
+              Restore <span className="font-medium text-text">{confirmRestore.name}</span>? Current
+              data on this device will be overwritten.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setConfirmRestore(null);
+                  if (fileRef.current) fileRef.current.value = '';
+                }}
+              >
+                Cancel
+              </Button>
+              <Button variant="danger" className="flex-1" loading={restore.isPending} onClick={() => void handleRestore()}>
+                Overwrite & restore
+              </Button>
+            </div>
           </div>
         )}
+      </Card>
 
-        {successMsg && (
-          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-3 text-sm text-emerald-200 flex items-start gap-2">
-            <Mail size={18} className="mt-0.5 shrink-0" />
-            <span>{successMsg}</span>
-          </div>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          disabled={!datesValid || exportPdf.isPending}
-          className="w-full h-12 rounded-xl bg-[#6366f1] hover:bg-[#4f46e5] disabled:bg-[#334155] disabled:text-[#64748b] text-white font-semibold flex items-center justify-center gap-2 transition-colors"
-        >
-          {exportPdf.isPending ? (
-            <>
-              <Loader2 size={20} className="animate-spin" />
-              Queuing report…
-            </>
+      <Card className="space-y-3">
+        <div className="flex items-center gap-2">
+          {persisted ? (
+            <ShieldCheck size={18} className="text-success" />
           ) : (
-            <>
-              <Send size={20} />
-              Email me the PDF
-            </>
+            <ShieldAlert size={18} className="text-warning" />
           )}
-        </button>
-      </div>
-
-      <div className="rounded-2xl border border-[#334155] bg-[#0f172a]/50 p-4 text-xs text-[#94a3b8]">
-        <p className="font-semibold text-[#cbd5e1] mb-1">What's inside</p>
-        <ul className="list-disc pl-5 space-y-0.5">
-          <li>Summary metrics: sessions, volume, sets, reps, avg RIR, best 1RM</li>
-          <li>Volume trend chart (and exercise progression chart when filtered)</li>
-          <li>Top exercises breakdown by volume</li>
-          <li>AI-written summary, highlights, and personalized suggestions</li>
-          <li>Full session log table for the selected range</li>
-        </ul>
-      </div>
+          <p className="font-semibold">Storage protection</p>
+        </div>
+        {persisted ? (
+          <p className="text-sm text-text-muted">
+            The browser has agreed not to evict this app's data under storage pressure. A backup
+            is still the only protection against a lost or reset phone.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-text-muted">
+              Not yet marked persistent. Installing the app to your home screen usually grants
+              this automatically; you can also ask directly.
+            </p>
+            <Button
+              variant="secondary"
+              className="w-full"
+              loading={requestPersist.isPending}
+              onClick={() => requestPersist.mutate()}
+            >
+              Request persistent storage
+            </Button>
+          </>
+        )}
+      </Card>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "progressionx",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,13 +7,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "extract": "node scripts/extract-backup.mjs",
+    "smoke": "tsx --tsconfig tsconfig.app.json scripts/smoke-test.ts"
   },
   "dependencies": {
-    "@react-oauth/google": "^0.13.5",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-query": "^5.94.5",
-    "axios": "^1.13.6",
+    "dexie": "^4.4.6",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -34,8 +35,10 @@
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^17.4.0",
     "sharp": "^0.34.5",
+    "tsx": "^4.23.13",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",
     "vite": "^7.3.1"

@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
           className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#1e293b] border border-[#334155] text-[#cbd5e1] text-sm font-semibold hover:border-[#6366f1] hover:text-white transition-colors"
         >
           <FileDown size={16} />
-          Export
+          Backup
         </Link>
       </div>
 
