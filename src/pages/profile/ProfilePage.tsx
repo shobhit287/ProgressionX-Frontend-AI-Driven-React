@@ -4,7 +4,8 @@ import { useCurrentUser, useUpdateProfile } from '@/api/auth';
 import { DEFAULT_MODEL, getGroqApiKey, getGroqModel, setGroqApiKey, setGroqModel } from '@/local/ai/groq';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { User, KeyRound, Check, AlertCircle, DatabaseBackup, ExternalLink } from 'lucide-react';
+import { User, KeyRound, Check, AlertCircle, DatabaseBackup, ExternalLink, RefreshCw } from 'lucide-react';
+import { APP_BUILD_TIME, refreshApp } from '@/utils/refreshApp';
 import type { TrainingType, ExperienceLevel } from '@/types';
 
 const TRAINING_TYPES: { value: TrainingType; label: string }[] = [
@@ -74,6 +75,21 @@ export default function ProfilePage() {
     setGroqModel(model);
     setAiSaved(true);
     setTimeout(() => setAiSaved(false), 3000);
+  };
+
+  // Force-refresh the PWA (clear cached app files + service worker, reload)
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+
+  const handleRefreshApp = async () => {
+    setRefreshError(null);
+    setRefreshing(true);
+    try {
+      await refreshApp(); // reloads the page on success
+    } catch (e) {
+      setRefreshError(e instanceof Error ? e.message : 'Refresh failed. Try again.');
+      setRefreshing(false);
+    }
   };
 
   if (isLoading) {
@@ -289,6 +305,35 @@ export default function ProfilePage() {
         <Link to="/export">
           <Button variant="secondary" className="w-full">Backup &amp; Restore</Button>
         </Link>
+      </Card>
+
+      {/* Force-refresh the PWA to pick up the latest deploy */}
+      <Card className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <RefreshCw className="w-4 h-4 text-text-muted" />
+          <p className="text-text-muted text-xs uppercase tracking-wide font-medium">App update</p>
+        </div>
+        <p className="text-xs text-text-muted mb-1">
+          Not seeing the latest changes? This clears the app's cached files and reloads the newest
+          version from the server. Your workouts and settings are not touched.
+        </p>
+        <p className="text-[11px] text-text-muted mb-3 tabular-nums">
+          Current build: {new Date(APP_BUILD_TIME).toLocaleString()}
+        </p>
+        {refreshError && (
+          <div className="flex items-start gap-2 text-danger text-sm mb-3">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {refreshError}
+          </div>
+        )}
+        <Button
+          variant="secondary"
+          className="w-full"
+          loading={refreshing}
+          disabled={refreshing}
+          onClick={handleRefreshApp}
+        >
+          Refresh App
+        </Button>
       </Card>
     </div>
   );

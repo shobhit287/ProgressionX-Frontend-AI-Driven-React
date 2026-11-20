@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
 
   return {
   base,
+  define: {
+    // Shown on the Profile page so you can tell which build is running.
+    __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     tailwindcss(),
