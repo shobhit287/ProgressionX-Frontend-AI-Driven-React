@@ -22,6 +22,24 @@ import { Timer, ChevronDown, ChevronUp, MessageSquare, Flame, ArrowDownCircle, C
 
 const REST_DEFAULT_KEY = 'progressionx.restSeconds';
 const REST_DEFAULT_FALLBACK = 90;
+// Stop showing an exercise's rest stopwatch after this long — the user has
+// clearly moved on (next exercise, finished the movement, etc.).
+const REST_DISPLAY_CAP_SECONDS = 30 * 60;
+// Within this many seconds of last session's rest counts as "on pace".
+const REST_MATCH_TOLERANCE = 10;
+
+/** 135 → "2:15" */
+function fmtClock(totalSeconds: number): string {
+  const t = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(t / 60);
+  const sec = t % 60;
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+/** Number of the next working (non-drop) set for an exercise. */
+function nextRegularSetNumber(exercise: SessionExercise): number {
+  return exercise.sets.filter((s) => !s.parentSetId).length + 1;
+}
 
 function loadDefaultRest(): number {
   if (typeof window === 'undefined') return REST_DEFAULT_FALLBACK;
@@ -158,26 +176,63 @@ export default function ActiveSession() {
   const alertHandlesRef = useRef<Record<string, RestAlertHandle>>({});
   // The `startedAt` each alert was scheduled against, so we can detect when a
   // rest restarts (same exId, new startedAt) and reschedule.
-  const alertStartedAtRef = useRef<Record<string, number>>({});
+  const alertStartedAtRef = useRef<Record<string, string>>({});
 
-  // Tick every second only while at least one rest timer is active.
+  /** Rest target for the upcoming set: what the user rested before the same
+   *  set last session, or the default rest when there's no history. */
+  const getRestTarget = (
+    exercise: SessionExercise,
+  ): { seconds: number; fromLastSession: boolean } => {
+    const prev = getPrevSet(exercise.exerciseName, nextRegularSetNumber(exercise));
+    if (prev?.rest_seconds != null && prev.rest_seconds > 0) {
+      return { seconds: prev.rest_seconds, fromLastSession: true };
+    }
+    return { seconds: restSeconds, fromLastSession: false };
+  };
+
+  // Tick every second only while at least one rest stopwatch is active, and
+  // drop stopwatches that have run past the display cap.
   useEffect(() => {
     const ids = Object.keys(restStartedAt);
     if (ids.length === 0) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const t = setInterval(() => {
+      const n = Date.now();
+      setNow(n);
+      const stale = ids.filter(
+        (exId) => n - restStartedAt[exId] > REST_DISPLAY_CAP_SECONDS * 1000,
+      );
+      if (stale.length > 0) {
+        setRestStartedAt((prev) => {
+          const next = { ...prev };
+          stale.forEach((exId) => delete next[exId]);
+          return next;
+        });
+      }
+    }, 1000);
     return () => clearInterval(t);
   }, [restStartedAt]);
 
-  // Schedule a rest alert whenever a rest timer starts or restarts.
+  // Schedule an alert for when the rest reaches last session's rest for the
+  // upcoming set (or the default rest when there's no history).
   useEffect(() => {
     Object.entries(restStartedAt).forEach(([exId, startedAt]) => {
-      if (alertStartedAtRef.current[exId] === startedAt) return;
-      // Cancel any prior scheduled alert for this exercise.
-      alertHandlesRef.current[exId]?.cancel();
       const ex = session?.exercises.find((e) => e.id === exId);
-      const delay = Math.max(0, restSeconds - (Date.now() - startedAt) / 1000);
-      alertHandlesRef.current[exId] = scheduleRestAlert(delay, ex?.exerciseName ?? 'Set');
-      alertStartedAtRef.current[exId] = startedAt;
+      const target = ex ? getRestTarget(ex).seconds : restSeconds;
+      // Reschedule when the rest restarts or its target changes (e.g. the
+      // previous-session data finished loading).
+      const key = `${startedAt}:${target}`;
+      if (alertStartedAtRef.current[exId] === key) return;
+      alertHandlesRef.current[exId]?.cancel();
+      const elapsedSec = (Date.now() - startedAt) / 1000;
+      if (elapsedSec < target) {
+        alertHandlesRef.current[exId] = scheduleRestAlert(
+          target - elapsedSec,
+          ex?.exerciseName ?? 'Set',
+        );
+      } else {
+        delete alertHandlesRef.current[exId];
+      }
+      alertStartedAtRef.current[exId] = key;
     });
     // Drop tracking for removed rest timers.
     Object.keys(alertStartedAtRef.current).forEach((exId) => {
@@ -187,7 +242,8 @@ export default function ActiveSession() {
         delete alertStartedAtRef.current[exId];
       }
     });
-  }, [restStartedAt, restSeconds, session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restStartedAt, restSeconds, session, previousSets]);
 
   // Cancel all pending alerts on unmount.
   useEffect(() => {
@@ -479,7 +535,10 @@ export default function ActiveSession() {
           </div>
           {isActive && (
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1 text-[11px] text-text-muted">
+              <label
+                className="flex items-center gap-1 text-[11px] text-text-muted"
+                title="Default rest, used when last session has no rest recorded for that set"
+              >
                 Rest
                 <input
                   type="number"
@@ -543,9 +602,20 @@ export default function ActiveSession() {
           const isCollapsed = collapsed[exercise.id] ?? false;
           const inp = getInput(exercise);
           const restStarted = restStartedAt[exercise.id];
-          const restRemaining =
-            restStarted != null ? Math.max(0, restSeconds - Math.floor((now - restStarted) / 1000)) : null;
-          const restOverdue = restStarted != null && restRemaining === 0;
+          // Stopwatch: time passed since the last set was logged, compared
+          // against the rest taken before this same set last session.
+          const restElapsed =
+            restStarted != null ? Math.max(0, Math.floor((now - restStarted) / 1000)) : null;
+          const restTarget = getRestTarget(exercise);
+          const restDiff = restElapsed != null ? restElapsed - restTarget.seconds : 0;
+          const restState: 'under' | 'match' | 'over' | null =
+            restElapsed == null
+              ? null
+              : Math.abs(restDiff) <= REST_MATCH_TOLERANCE
+                ? 'match'
+                : restDiff < 0
+                  ? 'under'
+                  : 'over';
 
           // Compute display labels for every set so drops show as
           // <parent>.<n> (e.g. 3.1, 3.2) and regular sets count
@@ -605,15 +675,18 @@ export default function ActiveSession() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-text-muted shrink-0 ml-2">
-                  {restRemaining != null && (
+                  {restElapsed != null && (
                     <span
+                      title={`Rest so far · ${restTarget.fromLastSession ? 'last time' : 'target'} ${fmtClock(restTarget.seconds)}`}
                       className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full tabular-nums ${
-                        restOverdue
-                          ? 'bg-danger/20 text-danger animate-pulse'
-                          : 'bg-primary/15 text-primary'
+                        restState === 'over'
+                          ? 'bg-danger/20 text-danger'
+                          : restState === 'match'
+                            ? 'bg-success/20 text-success animate-pulse'
+                            : 'bg-primary/15 text-primary'
                       }`}
                     >
-                      {restOverdue ? 'GO!' : `${restRemaining}s`}
+                      {fmtClock(restElapsed)}
                     </span>
                   )}
                   <span className="text-sm">{exercise.sets.length} sets</span>
@@ -839,6 +912,31 @@ export default function ActiveSession() {
                           </>
                         );
                       })()}
+                      {restElapsed != null && (
+                        <div
+                          className={`flex items-center gap-1.5 text-[11px] px-1 mt-2 pl-8 tabular-nums ${
+                            restState === 'over'
+                              ? 'text-danger'
+                              : restState === 'match'
+                                ? 'text-success'
+                                : 'text-text-muted'
+                          }`}
+                        >
+                          <Timer className="w-3 h-3 shrink-0" />
+                          <span>
+                            Rest <span className="font-mono font-bold">{fmtClock(restElapsed)}</span>
+                            {' · '}
+                            {restTarget.fromLastSession ? 'last time' : 'target'}{' '}
+                            {fmtClock(restTarget.seconds)}
+                            {' · '}
+                            {restState === 'match'
+                              ? 'on pace'
+                              : restState === 'under'
+                                ? `${fmtClock(-restDiff)} shorter`
+                                : `${fmtClock(restDiff)} longer`}
+                          </span>
+                        </div>
+                      )}
                       <div
                         ref={nextSetRef}
                         className="grid grid-cols-[28px_1fr_1fr_44px] gap-1.5 items-center mt-1"
