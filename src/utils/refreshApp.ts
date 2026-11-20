@@ -42,6 +42,9 @@ export async function refreshApp(): Promise<void> {
   }
 
   // Fresh load from the network; the new service worker registers and
-  // precaches the latest build on this load.
-  window.location.reload();
+  // precaches the latest build on this load. Go to the app root rather than
+  // reloading the current path: with the service worker gone, a deep link
+  // like /profile hits the host directly and 404s unless the host has an
+  // SPA rewrite rule configured.
+  window.location.replace(import.meta.env.BASE_URL);
 }
